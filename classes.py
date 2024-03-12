@@ -1,3 +1,4 @@
+import math
 
 
 class Depot:
@@ -54,16 +55,26 @@ class Camion:
 
         # Trajet du dernier client au dépôt
         trajets.append([self.liste_clients[-1], depot])
-
-        print(trajets)
-        for trajet in trajets:
-            print(trajet[0].idName, trajet[1].idName)
         return trajets
 
+    def calculer_distance_trajet(self):
+        distance = 0
+        for i in range(len(self.liste_clients) - 1):
+            distance += self.calculer_distance(self.liste_clients[i], self.liste_clients[i + 1])
+        return distance
 
 
     def __str__(self):
         return "Camion: " + str(self.max_capacity) + " capacity: " + str(self.capacity) + " liste_clients: " + str(self.liste_clients)
+
+    def calculer_distance(self, client1, client2):
+        return math.sqrt((client1.x - client2.x) ** 2 + (client1.y - client2.y) ** 2)
+
+    def echanger_clients(self, i, j):
+        temp = self.liste_clients[i]
+        self.liste_clients[i] = self.liste_clients[j]
+        self.liste_clients[j] = temp
+        return self.liste_clients
 
 
 
