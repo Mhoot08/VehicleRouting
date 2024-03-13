@@ -5,10 +5,7 @@ from itineraire import *
 v = VehicleRouting()
 v.read_file('data/data101.vrp')
 
-solution = generer_solution_aleatoire_opti(v)
-for camion in solution:
-    # sauvegarder les camions dans le vehicle routing
-    v.camions.append(camion)
+solution = generer_solution_aleatoire(v, 10)
 
 # # On fait ça seulement pour un camion qui a plus de 3 clients
 # for i in range(len(v.camions)):
@@ -72,21 +69,31 @@ print(f"PLus petite distance: {temp_distance}")
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 print("Début de l'algorithme de recuit simulé")
-afficher_solution(v)
-liste_camion_opti = []
+solution = generer_solution_aleatoire(v, 8)
+afficher_solution(solution)
+# liste_camion_opti = []
 
-# Utilisation de l'algorithme de recuit simulé
-temperature_initiale = 1000
-alpha = 0.99
-nombre_iterations = 100000000
+# # Utilisation de l'algorithme de recuit simulé
+# temperature_initiale = 10
+# alpha = 0.95
+# nombre_iterations = 100000000
 
-solution_initiale = v
-meilleure_solution = recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, 100000)
-v = meilleure_solution
-print(v)
-afficher_solution(v)
-
-
-
+# solution_initiale = v
+# meilleure_solution = recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, 100000)
+# #meilleure_solution = recuit_simule2(solution_initiale, temperature_initiale)
+# v = meilleure_solution
+# print(v)
+# afficher_solution(v)
 
 
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+
+# Recherche Tabou
+
+#meilleure_solution = recherche_tabou(v, 10, 1000, 10)
+#afficher_solution(meilleure_solution)
+
+s = start_metaheuristique(v)
+afficher_solution(s)
