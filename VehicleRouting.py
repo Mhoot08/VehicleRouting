@@ -42,6 +42,9 @@ class VehicleRouting:
                         line_values = line.split()
                         if line_values:
                             self.clients.append(Client(line_values[0], line_values[1], line_values[2], line_values[3], line_values[4], line_values[5], line_values[6]))
+        # garder que les 30 premiers clients
+        self.clients = self.clients[:30]
+
 
     def getCapacityClient(self):
         # Parcours les clients et additionne leur demande
@@ -57,7 +60,7 @@ class VehicleRouting:
     def calculer_distance_total(self):
         distance = 0
         for camion in self.camions:
-            distance += camion.calculer_distance_trajet()
+            distance += camion.calculer_distance_trajet(self.depots[0])
         return distance
     
     def copy(self):

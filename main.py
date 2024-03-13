@@ -91,8 +91,8 @@ afficher_solution(solution)
 # ______________________________________________________________________________________________________________________
 
 # Recherche Tabou
-
-#meilleure_solution = recherche_tabou(v, 10, 1000, 10)
+#v = generer_solution_aleatoire(v, 80)
+#meilleure_solution = recherche_tabou(v, 1000, 1000000, 10)
 #afficher_solution(meilleure_solution)
 
 s = start_metaheuristique(v)

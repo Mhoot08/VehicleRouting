@@ -58,10 +58,15 @@ class Camion:
         trajets.append([self.liste_clients[-1], depot])
         return trajets
 
-    def calculer_distance_trajet(self):
+    def calculer_distance_trajet(self, depot):
         distance = 0
+        # Ajouter le calcul de la distance entre le dépôt et le premier client et entre le dernier client et le dépôt
+
+        # Trajet du dépôt au premier client
+        distance += self.calculer_distance(depot, self.liste_clients[0])
         for i in range(len(self.liste_clients) - 1):
             distance += self.calculer_distance(self.liste_clients[i], self.liste_clients[i + 1])
+        distance += self.calculer_distance(self.liste_clients[-1], depot)
         return distance
 
 

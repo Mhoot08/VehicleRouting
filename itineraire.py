@@ -1,3 +1,4 @@
+import copy
 import random
 import math
 
@@ -5,7 +6,7 @@ from classes import Camion
 
 
 def generer_solution_aleatoire(v, nombre_camions):
-    clients = v.clients
+    clients = v.clients[:]  # Copie de la liste originale des clients
     max_capacity = v.CAPACITY
     solution = []
 
@@ -15,19 +16,25 @@ def generer_solution_aleatoire(v, nombre_camions):
     # Créer le nombre spécifié de camions avec la capacité maximale
     camions = [Camion(max_capacity) for _ in range(nombre_camions)]
 
-    for client in clients:
-        # Sélectionner un camion aléatoire parmi ceux qui n'ont pas atteint leur capacité maximale
-        camion = random.choice([c for c in camions if c.capacity + client.demand <= max_capacity])
+    # Ajouter un client à chaque camion
+    for camion in camions:
+        if clients:
+            client = clients.pop()  # Prendre un client au hasard
+            camion.add_client(client)
 
-        # Ajouter le client au camion sélectionné
-        camion.add_client(client)
+    # Attribuer les clients restants de manière aléatoire aux camions
+    while clients:
+        for camion in camions:
+            if clients:
+                client = clients.pop()  # Prendre un client au hasard
+                if camion.capacity + client.demand <= max_capacity:
+                    camion.add_client(client)
 
     # Ajouter uniquement les camions qui ont des clients à la solution
     solution.extend([camion for camion in camions if camion.liste_clients])
 
     print(f"len(solution): {len(solution)}")
-    for camion in solution:
-        v.camions.append(camion)
+    v.camions = solution
     return v
 
 def generer_solution_aleatoire_opti(v):
@@ -49,8 +56,7 @@ def generer_solution_aleatoire_opti(v):
             camion.add_client(client)
 
     solution.append(camion)
-
-    return solution
+    return v
 
 def exchange_intra(camions):
     # On échange deux clients dans un même camion
@@ -165,7 +171,6 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterati
         if voisins_actuel is None:
             voisins_actuel = exchange_extra(meilleure_solution)
             voisin_choisi = random.choice(voisins_actuel)
-            comparer_solutions(meilleure_solution, voisin_choisi)
         else:
             voisin_choisi = random.choice(voisins_actuel)
 
@@ -222,7 +227,7 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
         if meilleure_distance < meilleure_solution.calculer_distance_total():
             meilleure_solution = meilleur_voisin
             iterations_sans_amelioration = 0
-            print(f"Iteration: {i}, Distance: {meilleure_distance}")
+            print(f"Iteration: {i}, Distance: {meilleure_distance}, nb voisin: {len(voisins)}")
         else:
             iterations_sans_amelioration += 1
         
@@ -241,17 +246,19 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
         
 
     return meilleure_solution
-
 def start_metaheuristique(v):
     nb_min_vehicule = v.getNbMinVehicle()
-    meilleur_solution = v
+    best_solution = copy.deepcopy(v)  # Crée une copie indépendante de v
 
-    for i in range(nb_min_vehicule, 80):
+    for i in range(nb_min_vehicule, 10):
         print(f"itération métaheuristique: {i} camions")
-        v = generer_solution_aleatoire(v, i)
-        v = recherche_tabou(v, 10, 1000, 10)
-        if v.calculer_distance_total() < meilleur_solution.calculer_distance_total():
-            meilleur_solution = v
-            print(f"Meilleure solution: {meilleur_solution.calculer_distance_total()} avec {i} camions")
-    return meilleur_solution
+        solution_initiale = generer_solution_aleatoire(v, i)
+        v = recuit_simule(solution_initiale, 1000, 0.95, 100000000, 10000)
+        print(f"v.calculer_distance_total(): {v.calculer_distance_total()}")
+        print(f"best_solution.calculer_distance_total(): {best_solution.calculer_distance_total()}")
+        if v.calculer_distance_total() < best_solution.calculer_distance_total():
+            best_solution = copy.deepcopy(v)  # Met à jour best_solution avec la nouvelle meilleure solution
+            print(f"Meilleure solution: {best_solution.calculer_distance_total()} avec {i} camions")
+    print(f"Meilleure solution finale: {best_solution.calculer_distance_total()}")
+    return best_solution
 
