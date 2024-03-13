@@ -97,46 +97,86 @@ def exchange_extra(tournees_a_permuter):
 
     return tournees
 
-def opt_2(camion):
+def comparer_solutions(solution1, solution2):
+    diff_clients = {}  # Dictionnaire pour stocker les différences entre les solutions
+    
+    # Comparer les camions dans les deux solutions
+    for camion1, camion2 in zip(solution1, solution2):
+        diff_clients[camion1] = []  # Initialisation des listes vides pour chaque camion
+
+        # Comparer les listes de clients des camions dans les deux solutions
+        for client1, client2 in zip(camion1.liste_clients, camion2.liste_clients):
+            if client1 != client2:  # Si le client a changé entre les deux solutions
+                diff_clients[camion1].append((client1.idName, client2.idName))  # Ajouter les ID des clients à la liste correspondante
+
+    return diff_clients
+
+def opt_2(solution):
     voisins = []
 
-    if len(camion.liste_clients) <= 3:
-        return voisins
-
-    for i in range(1, len(camion.liste_clients) - 2):
-        for j in range(i + 1, len(camion.liste_clients) - 1):
-            # Crée un voisin en appliquant l'opérateur 2-opt
-            voisin = Camion(camion.max_capacity)
-            voisin.liste_clients = camion.liste_clients[:i] + camion.liste_clients[i:j+1][::-1] + camion.liste_clients[j+1:]
-            voisins.append(voisin)
+    # Parcourir tous les camions
+    for i in range(len(solution.camions)):
+        camion_i = solution.camions[i]
+        
+        # Parcourir tous les clients du camion i
+        for j in range(len(camion_i.liste_clients)):
+            client_i = camion_i.liste_clients[j]
+            
+            # Parcourir tous les autres camions
+            for k in range(len(solution.camions)):
+                camion_k = solution.camions[k]
+                
+                # Éviter de transférer le client_i vers son propre camion
+                if k != i:
+                    # Parcourir tous les clients du camion k
+                    for l in range(len(camion_k.liste_clients)):
+                        client_k = camion_k.liste_clients[l]
+                        
+                        # Créer une copie de la solution actuelle
+                        voisin = solution.copy()  
+                        
+                        # Échanger les clients entre les camions
+                        voisin.camions[i].liste_clients[j] = client_k
+                        voisin.camions[k].liste_clients[l] = client_i
+                        
+                        # Vérifier si les capacités des camions sont respectées
+                        if voisin.camions[i].capacite_suffisante(voisin.camions[i].liste_clients) and voisin.camions[k].capacite_suffisante(voisin.camions[k].liste_clients):
+                            voisins.append(voisin)
 
     return voisins
 
 
-def get_voisins(solution):
-    all_voisins = opt_2(solution)
-    return all_voisins
-
-
-def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations):
-    solution_actuelle = solution_initiale
+def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
     meilleure_solution = solution_initiale
     temperature = temperature_initiale
+    iterations_sans_amelioration = 0
+    voisins_actuel = None
+    
 
     for i in range(nombre_iterations):
-        voisins = get_voisins(solution_actuelle)
-        voisin_choisi = random.choice(voisins)
+        if voisins_actuel is None:
+            voisins_actuel = opt_2(meilleure_solution)
+            voisin_choisi = random.choice(voisins_actuel)
+        else:
+            voisin_choisi = random.choice(voisins_actuel)
 
-        delta_distance = voisin_choisi.calculer_distance_trajet() - solution_actuelle.calculer_distance_trajet()
+        if voisin_choisi is not None:
+            delta_distance = voisin_choisi.calculer_distance_total() - meilleure_solution.calculer_distance_total()
 
-        if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
-            solution_actuelle = voisin_choisi
+            if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
+                meilleure_solution = voisin_choisi
+                iterations_sans_amelioration = 0  # Réinitialiser le compteur
+                voisins_actuel = None
+                if i > 5000:
+                    print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()}")
+            else:
+                iterations_sans_amelioration += 1
 
-        if solution_actuelle.calculer_distance_trajet() < meilleure_solution.calculer_distance_trajet():
-            meilleure_solution = solution_actuelle
+            if iterations_sans_amelioration >= seuil_sans_amelioration:
+                print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
+                break
 
         temperature *= alpha
-        print(f"itération: {i} distance: {meilleure_solution.calculer_distance_trajet()}")
 
     return meilleure_solution
 

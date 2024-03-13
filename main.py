@@ -25,7 +25,9 @@ for camion in solution:
 # afficher_solution(v)
 
 # On fait la transformation exchange extra
-
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
 
 # temp_camions = []
 # # On prend 2 camions aléatoirement qui ont plus de 2 clients
@@ -49,26 +51,39 @@ for camion in solution:
 # afficher_solution(v)
 # v.camions = exchange_extra(v.camions)
 # afficher_solution(v)
-
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
-# Recuit simulé
+# Test de voisinage pour tous les trajets 
+ #afficher_solution(v)
+all_voisins = opt_2(v)
+#afficher_solution(v)
+# Afficher le voisin qui a la plus petite distance
+
+temp_distance = 10000000
+for voisin in all_voisins:
+    if voisin.calculer_distance_total() < temp_distance:
+        temp_distance = voisin.calculer_distance_total()
+    
+print(f"PLus petite distance: {temp_distance}")
+
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+print("Début de l'algorithme de recuit simulé")
 afficher_solution(v)
 liste_camion_opti = []
-for camion in v.camions:
-    all_voisins = get_voisins(camion)
 
-    # Utilisation de l'algorithme de recuit simulé
-    temperature_initiale = 1000
-    alpha = 0.95
-    nombre_iterations = 1000
+# Utilisation de l'algorithme de recuit simulé
+temperature_initiale = 1000
+alpha = 0.99
+nombre_iterations = 100000000
 
-    solution_initiale = camion
-    meilleure_solution = recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations)
-    liste_camion_opti.append(meilleure_solution)
-v.camions = liste_camion_opti
+solution_initiale = v
+meilleure_solution = recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, 100000)
+v = meilleure_solution
+print(v)
 afficher_solution(v)
 
 

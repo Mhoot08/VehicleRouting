@@ -31,6 +31,7 @@ class Camion:
         self.max_capacity = int(max_capacity)
         self.liste_clients = []
         self.capacity = 0
+        
 
     def add_client(self, client):
         self.liste_clients.append(client)
@@ -75,6 +76,19 @@ class Camion:
         self.liste_clients[i] = self.liste_clients[j]
         self.liste_clients[j] = temp
         return self.liste_clients
+
+    def copy(self):
+        new_camion = self.__class__(self.max_capacity)
+        new_camion.capacity = self.capacity
+        new_camion.liste_clients = self.liste_clients[:]
+        return new_camion
+    
+
+    def capacite_suffisante(self, liste_clients):
+        capacite = 0
+        for client in liste_clients:
+            capacite += client.demand
+        return capacite <= self.max_capacity
 
 
 

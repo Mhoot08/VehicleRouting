@@ -53,3 +53,17 @@ class VehicleRouting:
 
     def getNbMinVehicle(self):
         return int(self.getCapacityClient() / self.CAPACITY) + 1
+    
+    def calculer_distance_total(self):
+        distance = 0
+        for camion in self.camions:
+            distance += camion.calculer_distance_trajet()
+        return distance
+    
+    def copy(self):
+        new_solution = self.__class__()
+        new_solution.camions = [camion.copy() for camion in self.camions]
+        new_solution.clients = self.clients
+        new_solution.depots = self.depots
+        new_solution.CAPACITY = self.CAPACITY
+        return new_solution
