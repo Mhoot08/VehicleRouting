@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 import random
+import os
+from PIL import Image
 
 def afficher_solution(vehicle_routing):
     plt.figure(figsize=(14, 8))
@@ -41,3 +43,62 @@ def afficher_solution(vehicle_routing):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+def sauvegarder_solution(vehicle_routing, increment):
+    chemin_image = f"images/solution_{increment}.png"
+    plt.figure(figsize=(14, 8))
+
+    # Dictionnaire pour stocker les couleurs des camions
+    couleurs_camions = {}
+
+    # Affichage des dépôts
+    for depot in vehicle_routing.depots:
+        plt.plot(depot.x, depot.y, 'ro', markersize=25, label='Depot')
+
+    # Affichage des trajets
+    for camion in vehicle_routing.camions:
+        color = camion.couleur  # Utilisation de la couleur du camion
+        # Affichage des clients
+        for client in camion.liste_clients:
+            plt.plot(client.x, client.y, 'o', markersize=25, markeredgewidth=2, markeredgecolor=color, alpha=1,
+                     fillstyle='none', color=color)
+            plt.text(client.x, client.y, client.idName, fontsize=15)
+        trajets = camion.createTrajets(vehicle_routing.clients, vehicle_routing.depots[0])
+
+        for trajet in trajets:
+            depart, arrivee = trajet[0], trajet[1]
+            arrow = FancyArrowPatch((depart.x, depart.y), (arrivee.x, arrivee.y),
+                                    arrowstyle='-|>', mutation_scale=30, color=color)
+            plt.gca().add_patch(arrow)
+
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Visualisation du problème de VRP')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(chemin_image)  # Sauvegarder l'image
+    plt.close()  # Fermer la figure pour libérer la mémoire
+
+def creer_gif():
+    chemin_gif = "solution.gif"
+    chemin_images = "./images/"
+    images = []
+
+    # Fonction pour extraire le numéro de fichier à partir du nom de fichier
+    def extract_number(filename):
+        return int(filename.split('_')[1].split('.')[0])
+
+    # Parcourir toutes les images dans le dossier spécifié, en les triant par numéro de fichier
+    for filename in sorted(os.listdir(chemin_images), key=extract_number):
+        if filename.endswith('.png'):
+            images.append(Image.open(os.path.join(chemin_images, filename)))
+
+    # Sauvegarder le gif
+    images[0].save(chemin_gif, save_all=True, append_images=images[1:], duration=100, loop=1)
+
+def delete_all_images():
+    chemin_images = "./images/"
+    # Parcourir toutes les images dans le dossier spécifié
+    for filename in os.listdir(chemin_images):
+        if filename.endswith('.png'):
+            os.remove(os.path.join(chemin_images, filename))

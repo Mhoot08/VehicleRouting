@@ -1,4 +1,5 @@
 import math
+from random import random
 
 
 class Depot:
@@ -31,7 +32,11 @@ class Camion:
         self.max_capacity = int(max_capacity)
         self.liste_clients = []
         self.capacity = 0
-        
+        self.couleur = self.generer_couleur_aleatoire()
+
+    def generer_couleur_aleatoire(self):
+        couleurs_disponibles = ['r', 'g', 'b', 'c', 'm', 'y', 'k']  # Couleurs disponibles
+        return couleurs_disponibles[int(random() * len(couleurs_disponibles))]
 
     def add_client(self, client):
         self.liste_clients.append(client)
@@ -86,6 +91,7 @@ class Camion:
         new_camion = self.__class__(self.max_capacity)
         new_camion.capacity = self.capacity
         new_camion.liste_clients = self.liste_clients[:]
+        new_camion.couleur = self.couleur
         return new_camion
     
 

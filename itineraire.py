@@ -1,8 +1,10 @@
 import copy
 import random
 import math
+import matplotlib.pyplot as plt
 
 from classes import Camion
+from createMap import sauvegarder_solution, delete_all_images
 
 
 def generer_solution_aleatoire(v, nombre_camions):
@@ -33,7 +35,6 @@ def generer_solution_aleatoire(v, nombre_camions):
     # Ajouter uniquement les camions qui ont des clients à la solution
     solution.extend([camion for camion in camions if camion.liste_clients])
 
-    print(f"len(solution): {len(solution)}")
     v.camions = solution
     return v
 
@@ -125,6 +126,71 @@ def comparer_solutions(solution1, solution2):
 
     return diff_clients
 
+# Relocate va prendre un client et soit le donner à un autre camion à un endroit aléatoire, soit le replacer dans son camion à un autre endroit
+# Dans le cas où on vide un camion, on le supprime
+def relocate(solution):
+    voisins = []
+    for i in range(len(solution.camions)):
+        camion_i = solution.camions[i]
+        for j in range(len(camion_i.liste_clients)):
+            client_i = camion_i.liste_clients[j]
+
+            # Relocalisation intra-camion
+            for j_prime in range(len(camion_i.liste_clients)):
+                if j == j_prime:  # Ignorer le déplacement du client vers la même position
+                    continue
+                voisin = solution.copy()
+                voisin.camions[i].liste_clients[j], voisin.camions[i].liste_clients[j_prime] = \
+                voisin.camions[i].liste_clients[j_prime], voisin.camions[i].liste_clients[j]
+                voisins.append(voisin)
+
+            # Relocalisation extra-camion
+            for k in range(len(solution.camions)):
+                if i == k:  # Ignorer le déplacement du client vers le même camion
+                    continue
+                voisin = solution.copy()
+                voisin.camions[i].liste_clients.pop(j)
+                voisin.camions[k].liste_clients.append(client_i)
+                if voisin.camions[i].capacite_suffisante(voisin.camions[i].liste_clients) and voisin.camions[k].capacite_suffisante(voisin.camions[k].liste_clients):
+                    # Supprimer le camion si vide
+                    if not voisin.camions[i].liste_clients:
+                        voisin.camions.pop(i)
+                    voisins.append(voisin)
+
+    return voisins
+
+def cross_exchange(solution):
+    voisins = []
+    for i in range(len(solution.camions)):
+        for j in range(len(solution.camions)):
+            # Exclure les paires de camions identiques
+            if i != j:
+                voisin = copy.deepcopy(solution)  # Copie profonde de la solution
+                camion1 = voisin.camions[i]
+                camion2 = voisin.camions[j]
+
+                # Vérifier que les camions ont plus d'un client pour effectuer l'échange
+                if len(camion1.liste_clients) > 1 and len(camion2.liste_clients) > 1:
+                    # Choix aléatoire de deux clients différents dans chaque camion
+                    client1_idx = random.randint(0, len(camion1.liste_clients) - 1)
+                    client2_idx = random.randint(0, len(camion2.liste_clients) - 1)
+                    client1 = camion1.liste_clients[client1_idx]
+                    client2 = camion2.liste_clients[client2_idx]
+
+                    # Échange des clients entre les camions
+                    camion1.liste_clients[client1_idx] = client2
+                    camion2.liste_clients[client2_idx] = client1
+
+                    # Vérification de la capacité des camions
+                    if not camion1.capacite_suffisante(camion1.liste_clients):
+                        voisin.camions.pop(i)  # Supprimer le camion si vide
+                    if not camion2.capacite_suffisante(camion2.liste_clients):
+                        voisin.camions.pop(j)  # Supprimer le camion si vide
+
+                    # Ajouter le voisin à la liste
+                    voisins.append(voisin)
+    return voisins
+
 def opt_2(solution):
     voisins = []
 
@@ -161,6 +227,7 @@ def opt_2(solution):
 
 
 def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
+    delete_all_images()
     meilleure_solution = solution_initiale
     temperature = temperature_initiale
     iterations_sans_amelioration = 0
@@ -169,7 +236,7 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterati
 
     for i in range(nombre_iterations):
         if voisins_actuel is None:
-            voisins_actuel = exchange_extra(meilleure_solution)
+            voisins_actuel = relocate(meilleure_solution)
             voisin_choisi = random.choice(voisins_actuel)
         else:
             voisin_choisi = random.choice(voisins_actuel)
@@ -194,6 +261,7 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterati
 
 
 def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil_sans_amelioration):
+    delete_all_images()
     solution_courante = solution_initiale
     meilleure_solution = solution_initiale
     liste_tabou = []
@@ -202,7 +270,7 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
 
     for i in range(max_iterations):
         # Générer les voisins de la solution courante
-        voisins = opt_2(solution_courante)
+        voisins = cross_exchange(solution_courante)
 
         # Choisir le meilleur voisin non tabou
         meilleur_voisin = None
@@ -228,6 +296,7 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
             meilleure_solution = meilleur_voisin
             iterations_sans_amelioration = 0
             print(f"Iteration: {i}, Distance: {meilleure_distance}, nb voisin: {len(voisins)}")
+
         else:
             iterations_sans_amelioration += 1
         
@@ -248,17 +317,26 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
     return meilleure_solution
 def start_metaheuristique(v):
     nb_min_vehicule = v.getNbMinVehicle()
+    list_solutions = {}
     best_solution = copy.deepcopy(v)  # Crée une copie indépendante de v
 
-    for i in range(nb_min_vehicule, 10):
-        print(f"itération métaheuristique: {i} camions")
-        solution_initiale = generer_solution_aleatoire(v, i)
-        v = recuit_simule(solution_initiale, 1000, 0.95, 100000000, 10000)
-        print(f"v.calculer_distance_total(): {v.calculer_distance_total()}")
-        print(f"best_solution.calculer_distance_total(): {best_solution.calculer_distance_total()}")
-        if v.calculer_distance_total() < best_solution.calculer_distance_total():
-            best_solution = copy.deepcopy(v)  # Met à jour best_solution avec la nouvelle meilleure solution
-            print(f"Meilleure solution: {best_solution.calculer_distance_total()} avec {i} camions")
-    print(f"Meilleure solution finale: {best_solution.calculer_distance_total()}")
+    new_best_solution = copy.deepcopy(v)  # Crée une copie indépendante de v
+
+    for i in range(2, 100):
+
+        for i in range(nb_min_vehicule, 10):
+            print(f"itération métaheuristique: {i} camions")
+            solution_initiale = generer_solution_aleatoire(v, i)
+            v = recherche_tabou(solution_initiale, 100, 1000000, 10)
+            print(f"v.calculer_distance_total(): {v.calculer_distance_total()}")
+            print(f"best_solution.calculer_distance_total(): {best_solution.calculer_distance_total()}")
+            list_solutions[i] = v.calculer_distance_total();
+            if v.calculer_distance_total() < best_solution.calculer_distance_total():
+                best_solution = copy.deepcopy(v)  # Met à jour best_solution avec la nouvelle meilleure solution
+                print(f"Meilleure solution: {best_solution.calculer_distance_total()} avec {i} camions")
+        print(f"Meilleure solution finale: {best_solution.calculer_distance_total()}")
+        if new_best_solution.calculer_distance_total() > best_solution.calculer_distance_total():
+            new_best_solution = copy.deepcopy(best_solution)
+
     return best_solution
 

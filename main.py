@@ -1,5 +1,5 @@
 from VehicleRouting import VehicleRouting
-from createMap import afficher_solution
+from createMap import afficher_solution, creer_gif
 from itineraire import *
 
 v = VehicleRouting()
@@ -80,7 +80,6 @@ afficher_solution(solution)
 
 # solution_initiale = v
 # meilleure_solution = recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, 100000)
-# #meilleure_solution = recuit_simule2(solution_initiale, temperature_initiale)
 # v = meilleure_solution
 # print(v)
 # afficher_solution(v)
@@ -91,9 +90,15 @@ afficher_solution(solution)
 # ______________________________________________________________________________________________________________________
 
 # Recherche Tabou
-#v = generer_solution_aleatoire(v, 80)
-#meilleure_solution = recherche_tabou(v, 1000, 1000000, 10)
-#afficher_solution(meilleure_solution)
+solution_initiale_temp = generer_solution_aleatoire(v, 50)
+meilleure_solution = recherche_tabou(v, 10, 1000000, 10)
+#meilleure_solution = recuit_simule(solution_initiale_temp, 1000, 0.95, 100000, 100)
+afficher_solution(meilleure_solution)
+print("Création du gif")
+print("Fin de l'algorithme")
 
-s = start_metaheuristique(v)
-afficher_solution(s)
+#s = start_metaheuristique(solution_initiale_temp)
+#afficher_solution(s)
+
+#print(f"La meilleure solution pour relocate: {meilleure_solution.calculer_distance_total()}")
+#print(f"La meilleure solution pour 2opt: {s.calculer_distance_total()}")
