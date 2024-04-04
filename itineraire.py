@@ -159,37 +159,7 @@ def relocate(solution):
 
     return voisins
 
-def cross_exchange(solution):
-    voisins = []
-    for i in range(len(solution.camions)):
-        for j in range(len(solution.camions)):
-            # Exclure les paires de camions identiques
-            if i != j:
-                voisin = copy.deepcopy(solution)  # Copie profonde de la solution
-                camion1 = voisin.camions[i]
-                camion2 = voisin.camions[j]
 
-                # Vérifier que les camions ont plus d'un client pour effectuer l'échange
-                if len(camion1.liste_clients) > 1 and len(camion2.liste_clients) > 1:
-                    # Choix aléatoire de deux clients différents dans chaque camion
-                    client1_idx = random.randint(0, len(camion1.liste_clients) - 1)
-                    client2_idx = random.randint(0, len(camion2.liste_clients) - 1)
-                    client1 = camion1.liste_clients[client1_idx]
-                    client2 = camion2.liste_clients[client2_idx]
-
-                    # Échange des clients entre les camions
-                    camion1.liste_clients[client1_idx] = client2
-                    camion2.liste_clients[client2_idx] = client1
-
-                    # Vérification de la capacité des camions
-                    if not camion1.capacite_suffisante(camion1.liste_clients):
-                        voisin.camions.pop(i)  # Supprimer le camion si vide
-                    if not camion2.capacite_suffisante(camion2.liste_clients):
-                        voisin.camions.pop(j)  # Supprimer le camion si vide
-
-                    # Ajouter le voisin à la liste
-                    voisins.append(voisin)
-    return voisins
 
 def opt_2(solution):
     voisins = []
@@ -225,6 +195,30 @@ def opt_2(solution):
 
     return voisins
 
+def fusion(solution):
+    voisins = []
+    # Parcours tous les camions et fusionner 2 camions si la capacité totale est respectée
+    for i in range(len(solution.camions)):
+        camion_i = solution.camions[i]
+        for j in range(len(solution.camions)):
+            camion_j = solution.camions[j]
+            if i != j:
+                if camion_i.capacity + camion_j.capacity <= solution.CAPACITY:
+                    voisin = copy.deepcopy(solution)
+                    voisin.camions[i].liste_clients.extend(voisin.camions[j].liste_clients)
+                    voisin.camions[i].capacity += voisin.camions[j].capacity
+                    voisin.camions.pop(j)
+                    voisins.append(voisin)
+    return voisins
+
+
+def choisir_voisinage(solution):
+    # Choisir un voisinage aléatoire
+    methode_voisinages = ["relocate(solution)", "opt_2(solution)", "exchange_extra(solution)","fusion(solution)"]
+    voisins = eval(random.choice(methode_voisinages))
+    if not voisins:
+        voisins = choisir_voisinage(solution)
+    return voisins
 
 def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
     delete_all_images()
@@ -236,7 +230,7 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterati
 
     for i in range(nombre_iterations):
         if voisins_actuel is None:
-            voisins_actuel = relocate(meilleure_solution)
+            voisins_actuel = choisir_voisinage(meilleure_solution)
             voisin_choisi = random.choice(voisins_actuel)
         else:
             voisin_choisi = random.choice(voisins_actuel)
@@ -270,7 +264,8 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
 
     for i in range(max_iterations):
         # Générer les voisins de la solution courante
-        voisins = cross_exchange(solution_courante)
+        voisins = relocate(
+            solution_courante)
 
         # Choisir le meilleur voisin non tabou
         meilleur_voisin = None
@@ -301,6 +296,8 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
             iterations_sans_amelioration += 1
         
         if iterations_sans_amelioration >= seuil_sans_amelioration:
+            for camion in meilleure_solution.camions:
+                print(f"Camion charge: {camion.capacity}")
             print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
             break
 

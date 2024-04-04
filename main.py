@@ -69,8 +69,6 @@ print(f"PLus petite distance: {temp_distance}")
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 print("Début de l'algorithme de recuit simulé")
-solution = generer_solution_aleatoire(v, 8)
-afficher_solution(solution)
 # liste_camion_opti = []
 
 # # Utilisation de l'algorithme de recuit simulé
@@ -90,9 +88,10 @@ afficher_solution(solution)
 # ______________________________________________________________________________________________________________________
 
 # Recherche Tabou
-solution_initiale_temp = generer_solution_aleatoire(v, 50)
-meilleure_solution = recherche_tabou(v, 10, 1000000, 10)
-#meilleure_solution = recuit_simule(solution_initiale_temp, 1000, 0.95, 100000, 100)
+solution_initiale_temp = generer_solution_aleatoire(v, 3)
+afficher_solution(solution_initiale_temp)
+meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
+#meilleure_solution = recuit_simule(solution_initiale_temp, 1000, 0.95, 100000, 10000)
 afficher_solution(meilleure_solution)
 print("Création du gif")
 print("Fin de l'algorithme")
