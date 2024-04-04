@@ -27,6 +27,8 @@ class Client:
     def __str__(self):
         return "Client: " + self.idName + " x: " + str(self.x) + " y: " + str(self.y) + " ready time: " + str(self.readyTime) + " due time: " + str(self.dueTime) + " demand: " + str(self.demand) + " service: " + str(self.service)
 
+    def __eq__(self, other):
+        return self.idName == other.idName
 class Camion:
     def __init__(self, max_capacity):
         self.max_capacity = int(max_capacity)
@@ -100,6 +102,9 @@ class Camion:
         for client in liste_clients:
             capacite += client.demand
         return capacite <= self.max_capacity
+
+    def __eq__(self, other):
+        return self.liste_clients == other.liste_clients
 
 
 

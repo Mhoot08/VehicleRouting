@@ -81,11 +81,20 @@ print("Début de l'algorithme de recuit simulé")
 # ______________________________________________________________________________________________________________________
 
 # Recherche Tabou
-solution_initiale_temp = generer_solution_aleatoire(v, 3)
+solution_initiale_temp = generer_solution_aleatoire(v, 10)
 afficher_solution(solution_initiale_temp)
-#meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
-meilleure_solution = recuit_simule(solution_initiale_temp, 43, 0.95, 100000, 10000)
+meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
+#meilleure_solution = recuit_simule(solution_initiale_temp, 47, 0.95, 100000, 10000)
 afficher_solution(meilleure_solution)
+p = 0
+for i in range(len(meilleure_solution.camions)):
+    p += meilleure_solution.camions[i].capacity
+    print(f"camion {i} : {meilleure_solution.camions[i].capacity}")
+
+print(f"Capacité totale des camions : {p}")
+
+print(f"Capacité totale des clients : {meilleure_solution.getCapacityClient()}")
+
 print("Création du gif")
 print("Fin de l'algorithme")
 

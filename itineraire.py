@@ -120,11 +120,14 @@ def relocate_intra(camion):
 
     camion.liste_clients.insert(index, client)
 
-    return camion
+     # Recalculer la capacité
+    camion.capacity = sum([client.demand for client in camion.liste_clients])
+
+    return [camion]
 
 def exchange_intra(camion):
     # On échange deux clients dans un même camion
-    if len(camion.liste_clients) > 2:
+    if len(camion.liste_clients) > 1:
         # On prend deux clients aléatoirement mais différents
         client1 = random.choice(camion.liste_clients)
         client2 = random.choice(camion.liste_clients)
@@ -138,7 +141,10 @@ def exchange_intra(camion):
         camion.liste_clients[index1] = client2
         camion.liste_clients[index2] = client1
 
-    return camion
+    # Recalculer la capacité
+    camion.capacity = sum([client.demand for client in camion.liste_clients])
+
+    return [camion]
 
 def exchange_extra(camion1, camion2):
     # On échange un client entre deux camions
@@ -153,8 +159,10 @@ def exchange_extra(camion1, camion2):
 
             camion1.liste_clients.append(client2)
             camion2.liste_clients.append(client1)
-
-    return camion1, camion2
+    # Recalculer les capacités
+    camion1.capacity = sum([client.demand for client in camion1.liste_clients])
+    camion2.capacity = sum([client.demand for client in camion2.liste_clients])
+    return [camion1, camion2]
 
 def relocate_extra(camion1, camion2):
     # On prend un client aléatoire dans le premier camion
@@ -168,133 +176,37 @@ def relocate_extra(camion1, camion2):
         camion1.liste_clients.remove(client)
         camion2.liste_clients.insert(index, client)
 
-    return camion1, camion2
+    # Recalculer les capacités
+    camion1.capacity = sum([client.demand for client in camion1.liste_clients])
+    camion2.capacity = sum([client.demand for client in camion2.liste_clients])
 
-
-
-
-
-
-# def opt_2(solution):
-#     voisins = []
-#
-#     # Parcourir tous les camions
-#     for i in range(len(solution.camions)):
-#         camion_i = solution.camions[i]
-#
-#         # Parcourir tous les clients du camion i
-#         for j in range(len(camion_i.liste_clients)):
-#             client_i = camion_i.liste_clients[j]
-#
-#             # Parcourir tous les autres camions
-#             for k in range(len(solution.camions)):
-#                 camion_k = solution.camions[k]
-#
-#                 # Éviter de transférer le client_i vers son propre camion
-#                 if k != i:
-#                     # Parcourir tous les clients du camion k
-#                     for l in range(len(camion_k.liste_clients)):
-#                         client_k = camion_k.liste_clients[l]
-#
-#                         # Créer une copie de la solution actuelle
-#                         voisin = solution.copy()
-#
-#                         # Échanger les clients entre les camions
-#                         voisin.camions[i].liste_clients[j] = client_k
-#                         voisin.camions[k].liste_clients[l] = client_i
-#
-#                         # Vérifier si les capacités des camions sont respectées
-#                         if voisin.camions[i].capacite_suffisante(voisin.camions[i].liste_clients) and voisin.camions[k].capacite_suffisante(voisin.camions[k].liste_clients):
-#                             voisins.append(voisin)
-#
-#     return voisins
-
-def fusion(solution):
-    voisins = []
-    # Parcours tous les camions et fusionner 2 camions si la capacité totale est respectée
-    for i in range(len(solution.camions)):
-        camion_i = solution.camions[i]
-        for j in range(len(solution.camions)):
-            camion_j = solution.camions[j]
-            if i != j:
-                if camion_i.capacity + camion_j.capacity <= solution.CAPACITY:
-                    voisin = copy.deepcopy(solution)
-                    voisin.camions[i].liste_clients.extend(voisin.camions[j].liste_clients)
-                    voisin.camions[i].capacity += voisin.camions[j].capacity
-                    voisin.camions.pop(j)
-                    voisins.append(voisin)
-    return voisins
-
+    return [camion1, camion2]
 
 def choisir_voisin(solution):
-    camion1 = random.choice(solution.camions)
-    camion2 = random.choice(solution.camions)
-    while camion1 == camion2:
-        camion2 = random.choice(solution.camions)
-
+    result = None
     operateurs = ["exchange_extra(camion1, camion2)", "exchange_intra(camion1)", "relocate_intra(camion1)", "relocate_extra(camion1, camion2)"]
-    operateur = random.choice(operateurs)
-    if operateur == "exchange_intra(camion1)" or operateur == "relocate_intra(camion1)":
-        camion2 = None
-
-    result = eval(operateur)
-
+    #operateurs = ["relocate_extra(camion1, camion2)"]
     while not result:
+        solution_deepcopy = copy.deepcopy(solution)
+        camion1 = random.choice(solution_deepcopy.camions)
+        camion2 = random.choice(solution_deepcopy.camions)
         operateur = random.choice(operateurs)
-        if operateur == "exchange_extra(camion1, camion2)" or operateur == "relocate_extra(camion1, camion2)":
+        while camion1 == camion2:
+            camion2 = random.choice(solution_deepcopy.camions)
+        if operateur == "exchange_intra(camion1)" or operateur == "relocate_intra(camion1)":
             camion2 = None
         result = eval(operateur)
 
-    if isinstance(result, tuple):
-        r = []
-        r.append(result[0])
-        r.append(result[1])
-        result = r
+    for camion in result:
+        index_camion = solution_deepcopy.camions.index(camion)
+        solution_deepcopy.camions[index_camion] = camion
 
-    if not isinstance(result, list):
-        result = [result]
-
-
-    copy_solution = copy.deepcopy(solution)
-    copy_solution.camions = result + [camion for camion in solution.camions if camion not in [camion1, camion2]]
-
-    for camion in copy_solution.camions:
+    for camion in solution_deepcopy.camions:
         if not camion.liste_clients:
-            copy_solution.camions.remove(camion)
-    return copy_solution
+            solution_deepcopy.camions.remove(camion)
 
-# def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
-#     delete_all_images()
-#     meilleure_solution = solution_initiale
-#     temperature = temperature_initiale
-#     iterations_sans_amelioration = 0
-#     voisins_actuel = None
-#
-#
-#     for i in range(nombre_iterations):
-#         if voisins_actuel is None:
-#             voisins_actuel = choisir_voisin(meilleure_solution)
-#             voisin_choisi = random.choice(voisins_actuel)
-#         else:
-#             voisin_choisi = random.choice(voisins_actuel)
-#
-#         if voisin_choisi is not None:
-#             delta_distance = voisin_choisi.calculer_distance_total() - meilleure_solution.calculer_distance_total()
-#             if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
-#                 meilleure_solution = voisin_choisi
-#                 iterations_sans_amelioration = 0  # Réinitialiser le compteur
-#                 voisins_actuel = None
-#                 print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()}")
-#             else:
-#                 iterations_sans_amelioration += 1
-#
-#             if iterations_sans_amelioration >= seuil_sans_amelioration:
-#                 print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
-#                 break
-#
-#         temperature *= alpha
-#
-#     return meilleure_solution
+    return solution_deepcopy, operateur
+
 
 def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
     delete_all_images()
@@ -303,12 +215,14 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterati
     iterations_sans_amelioration = 0
 
     for i in range(nombre_iterations):
-        voisin = choisir_voisin(meilleure_solution)
-        delta_distance = voisin.calculer_distance_total() - meilleure_solution.calculer_distance_total()
+        r = choisir_voisin(copy.deepcopy(meilleure_solution))
+        voisin = r[0]
+        delta_distance = round(voisin.calculer_distance_total() - meilleure_solution.calculer_distance_total())
         if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
-            meilleure_solution = voisin
-            iterations_sans_amelioration = 0
-            print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()}")
+            if not voisin.__eq__(meilleure_solution):
+                meilleure_solution = voisin
+                iterations_sans_amelioration = 0
+                print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()} opérateur : {r[1]} Camions: {len(meilleure_solution.camions)}")
         else:
             iterations_sans_amelioration += 1
 
@@ -321,64 +235,91 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterati
     return meilleure_solution
 
 
-def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil_sans_amelioration):
-    delete_all_images()
-    solution_courante = solution_initiale
-    meilleure_solution = solution_initiale
-    liste_tabou = []
+def generer_voisins(solution):
+    voisins = []
 
+    # Pour chaque camion dans la solution
+    for camion1 in solution.camions:
+        for camion2 in solution.camions:
+            solution_temp = copy.deepcopy(solution)
+            if camion1 == camion2:
+                continue
+
+            # Opérateur: échange extra
+            voisin = exchange_extra(copy.deepcopy(camion1), copy.deepcopy(camion2))
+            if voisin:
+                index_camion1 = solution.camions.index(camion1)
+                index_camion2 = solution.camions.index(camion2)
+                solution_temp.camions[index_camion1] = voisin[0]
+                solution_temp.camions[index_camion2] = voisin[1]
+                voisins.append(solution_temp)
+
+            # Opérateur: échange intra
+            voisin = exchange_intra(copy.deepcopy(camion1))
+            if voisin:
+                index_camion1 = solution.camions.index(camion1)
+                solution_temp.camions[index_camion1] = voisin[0]
+                voisins.append(solution_temp)
+
+            # Opérateur: relocalisation intra
+            voisin = relocate_intra(copy.deepcopy(camion1))
+            if voisin:
+                index_camion1 = solution.camions.index(camion1)
+                solution_temp.camions[index_camion1] = voisin[0]
+                voisins.append(solution_temp)
+
+            # Opérateur: relocalisation extra
+            voisin = relocate_extra(copy.deepcopy(camion1), copy.deepcopy(camion2))
+            if voisin:
+                index_camion1 = solution.camions.index(camion1)
+                index_camion2 = solution.camions.index(camion2)
+                solution_temp.camions[index_camion1] = voisin[0]
+                solution_temp.camions[index_camion2] = voisin[1]
+                voisins.append(solution_temp)
+
+    return voisins
+
+def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil_sans_amelioration):
+    meilleure_solution = copy.deepcopy(solution_initiale)
+    meilleure_valeur = meilleure_solution.calculer_distance_total()
+    solution_courante = meilleure_solution
+    liste_tabou = []  # Liste tabou initialement vide
     iterations_sans_amelioration = 0
 
     for i in range(max_iterations):
-        # Générer les voisins de la solution courante
-        voisins = relocate(
-            solution_courante)
-
-        # Choisir le meilleur voisin non tabou
         meilleur_voisin = None
-        meilleure_distance = float('inf')
+        meilleure_valeur_voisin = float('inf')
 
-        for voisin in voisins:
+        for voisin in generer_voisins(solution_initiale):
             if voisin not in liste_tabou:
-                distance_voisin = voisin.calculer_distance_total()
-                if distance_voisin < meilleure_distance:
+                valeur_voisin = voisin.calculer_distance_total()
+                if valeur_voisin < meilleure_valeur_voisin:
                     meilleur_voisin = voisin
-                    meilleure_distance = distance_voisin
+                    meilleure_valeur_voisin = valeur_voisin
 
-        # Si aucun voisin n'est autorisé (tous sont tabous), on arrête l'algorithme
-        if meilleur_voisin is None:
-            print("Aucun voisin autorisé trouvé. Arrêt de l'algorithme.")
-            break
 
-        # Mettre à jour la solution courante
-        solution_courante = meilleur_voisin
+        if meilleur_voisin:
+            solution_courante = meilleur_voisin
+            valeur_courante = meilleure_valeur_voisin
 
-        # Mettre à jour la meilleure solution
-        if meilleure_distance < meilleure_solution.calculer_distance_total():
-            meilleure_solution = meilleur_voisin
+            if valeur_courante < meilleure_valeur_voisin:
+                meilleure_solution = copy.deepcopy(solution_courante)
+
+            liste_tabou.append(meilleur_voisin)
+            if len(liste_tabou) > taille_liste_tabou:
+                liste_tabou.pop(0)  # Supprimer le plus ancien voisin tabou
             iterations_sans_amelioration = 0
-            print(f"Iteration: {i}, Distance: {meilleure_distance}, nb voisin: {len(voisins)}")
+            print(f"Itération: {i} Distance: {meilleure_solution.calculer_distance_total()}")
 
         else:
             iterations_sans_amelioration += 1
-        
+
         if iterations_sans_amelioration >= seuil_sans_amelioration:
-            for camion in meilleure_solution.camions:
-                print(f"Camion charge: {camion.capacity}")
             print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
             break
 
-        # Mettre à jour la liste tabou
-        liste_tabou.append(meilleur_voisin)
-
-        # Si la taille de la liste tabou dépasse la taille maximale, enlever le plus ancien élément
-        if len(liste_tabou) > taille_liste_tabou:
-            liste_tabou.pop(0)
-
-        # Vérifier si l'algorithme doit s'arrêter en cas d'absence d'amélioration
-        
-
     return meilleure_solution
+
 def start_metaheuristique(v):
     nb_min_vehicule = v.getNbMinVehicle()
     list_solutions = {}

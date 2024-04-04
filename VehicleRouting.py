@@ -45,6 +45,9 @@ class VehicleRouting:
         # garder que les 30 premiers clients
         self.clients = self.clients[:30]
 
+        # Afficher la capacité total des clients
+        print(self.getCapacityClient())
+
 
     def getCapacityClient(self):
         # Parcours les clients et additionne leur demande
@@ -70,3 +73,8 @@ class VehicleRouting:
         new_solution.depots = self.depots
         new_solution.CAPACITY = self.CAPACITY
         return new_solution
+
+    def __eq__(self, other):
+        return self.camions == other.camions and self.clients == other.clients
+
+
