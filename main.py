@@ -54,16 +54,9 @@ solution = generer_solution_aleatoire(v, 10)
 
 # Test de voisinage pour tous les trajets 
  #afficher_solution(v)
-all_voisins = opt_2(v)
 #afficher_solution(v)
 # Afficher le voisin qui a la plus petite distance
 
-temp_distance = 10000000
-for voisin in all_voisins:
-    if voisin.calculer_distance_total() < temp_distance:
-        temp_distance = voisin.calculer_distance_total()
-    
-print(f"PLus petite distance: {temp_distance}")
 
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
@@ -90,8 +83,8 @@ print("Début de l'algorithme de recuit simulé")
 # Recherche Tabou
 solution_initiale_temp = generer_solution_aleatoire(v, 3)
 afficher_solution(solution_initiale_temp)
-meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
-#meilleure_solution = recuit_simule(solution_initiale_temp, 1000, 0.95, 100000, 10000)
+#meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
+meilleure_solution = recuit_simule(solution_initiale_temp, 43, 0.95, 100000, 10000)
 afficher_solution(meilleure_solution)
 print("Création du gif")
 print("Fin de l'algorithme")

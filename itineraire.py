@@ -59,58 +59,6 @@ def generer_solution_aleatoire_opti(v):
     solution.append(camion)
     return v
 
-def exchange_intra(camions):
-    # On échange deux clients dans un même camion
-    for camion in camions:
-        if len(camion.liste_clients) > 2:
-            # On prend deux clients aléatoirement mais différents
-
-            client1 = random.choice(camion.liste_clients)
-            client2 = random.choice(camion.liste_clients)
-            while client1 == client2:
-                client2 = random.choice(camion.liste_clients)
-
-            # On échange les clients
-            index1 = camion.liste_clients.index(client1)
-            index2 = camion.liste_clients.index(client2)
-
-            camion.liste_clients[index1] = client2
-            camion.liste_clients[index2] = client1
-
-    return camions
-
-"""
-@:param camions: liste de 2 tournées (camions) qui ont plus de 2 clients
-@:return camions: liste de 2 tournées (camions) qui ont plus de 2 clients
-"""
-def exchange_extra(solution):
-    voisins = []
-
-    for _ in range(10000):
-        # Sélectionner aléatoirement deux camions différents
-        camion1_idx, camion2_idx = random.sample(range(len(solution.camions)), 2)
-        camion1 = solution.camions[camion1_idx]
-        camion2 = solution.camions[camion2_idx]
-
-        # Sélectionner aléatoirement un client dans chaque camion
-        client1_idx, client2_idx = random.randint(0, len(camion1.liste_clients) - 1), random.randint(0, len(camion2.liste_clients) - 1)
-        client1 = camion1.liste_clients[client1_idx]
-        client2 = camion2.liste_clients[client2_idx]
-
-        # Échanger les clients entre les camions
-        nouveau_trajet1 = camion1.liste_clients.copy()
-        nouveau_trajet2 = camion2.liste_clients.copy()
-        nouveau_trajet1[client1_idx] = client2
-        nouveau_trajet2[client2_idx] = client1
-
-        # Vérifier si les capacités des camions sont respectées
-        if camion1.capacite_suffisante(nouveau_trajet1) and camion2.capacite_suffisante(nouveau_trajet2):
-            voisin = solution.copy()  # Créer une copie de la solution actuelle
-            voisin.camions[camion1_idx].liste_clients = nouveau_trajet1
-            voisin.camions[camion2_idx].liste_clients = nouveau_trajet2
-            voisins.append(voisin)  # Ajouter la nouvelle solution à la liste des voisins
-
-    return voisins  # Retourner la liste des voisins
 
 def comparer_solutions(solution1, solution2):
     diff_clients = {}  # Dictionnaire pour stocker les différences entre les solutions
@@ -159,41 +107,107 @@ def relocate(solution):
 
     return voisins
 
+# On change de place un client dans un camion
+def relocate_intra(camion):
+     # On prend un client aléatoire
+    client = random.choice(camion.liste_clients)
+
+    # Prendre un index aléatoire
+    index = random.randint(0, len(camion.liste_clients) - 1)
+
+    # On insère le client à l'index choisi
+    camion.liste_clients.remove(client)
+
+    camion.liste_clients.insert(index, client)
+
+    return camion
+
+def exchange_intra(camion):
+    # On échange deux clients dans un même camion
+    if len(camion.liste_clients) > 2:
+        # On prend deux clients aléatoirement mais différents
+        client1 = random.choice(camion.liste_clients)
+        client2 = random.choice(camion.liste_clients)
+        while client1 == client2:
+            client2 = random.choice(camion.liste_clients)
+
+        # On échange les clients
+        index1 = camion.liste_clients.index(client1)
+        index2 = camion.liste_clients.index(client2)
+
+        camion.liste_clients[index1] = client2
+        camion.liste_clients[index2] = client1
+
+    return camion
+
+def exchange_extra(camion1, camion2):
+    # On échange un client entre deux camions
+    if camion1.liste_clients and camion2.liste_clients:
+        client1 = random.choice(camion1.liste_clients)
+        client2 = random.choice(camion2.liste_clients)
+
+        if camion1.capacity - client1.demand + client2.demand <= camion1.max_capacity and camion2.capacity - client2.demand + client1.demand <= camion2.max_capacity:
+            # On échange les clients
+            camion1.liste_clients.remove(client1)
+            camion2.liste_clients.remove(client2)
+
+            camion1.liste_clients.append(client2)
+            camion2.liste_clients.append(client1)
+
+    return camion1, camion2
+
+def relocate_extra(camion1, camion2):
+    # On prend un client aléatoire dans le premier camion
+    client = random.choice(camion1.liste_clients)
+
+    # On prend un index aléatoire dans le deuxième camion
+    index = random.randint(0, len(camion2.liste_clients) - 1)
+
+    if camion2.capacity + client.demand < camion2.max_capacity:
+        # On échange les clients
+        camion1.liste_clients.remove(client)
+        camion2.liste_clients.insert(index, client)
+
+    return camion1, camion2
 
 
-def opt_2(solution):
-    voisins = []
 
-    # Parcourir tous les camions
-    for i in range(len(solution.camions)):
-        camion_i = solution.camions[i]
-        
-        # Parcourir tous les clients du camion i
-        for j in range(len(camion_i.liste_clients)):
-            client_i = camion_i.liste_clients[j]
-            
-            # Parcourir tous les autres camions
-            for k in range(len(solution.camions)):
-                camion_k = solution.camions[k]
-                
-                # Éviter de transférer le client_i vers son propre camion
-                if k != i:
-                    # Parcourir tous les clients du camion k
-                    for l in range(len(camion_k.liste_clients)):
-                        client_k = camion_k.liste_clients[l]
-                        
-                        # Créer une copie de la solution actuelle
-                        voisin = solution.copy()  
-                        
-                        # Échanger les clients entre les camions
-                        voisin.camions[i].liste_clients[j] = client_k
-                        voisin.camions[k].liste_clients[l] = client_i
-                        
-                        # Vérifier si les capacités des camions sont respectées
-                        if voisin.camions[i].capacite_suffisante(voisin.camions[i].liste_clients) and voisin.camions[k].capacite_suffisante(voisin.camions[k].liste_clients):
-                            voisins.append(voisin)
 
-    return voisins
+
+
+# def opt_2(solution):
+#     voisins = []
+#
+#     # Parcourir tous les camions
+#     for i in range(len(solution.camions)):
+#         camion_i = solution.camions[i]
+#
+#         # Parcourir tous les clients du camion i
+#         for j in range(len(camion_i.liste_clients)):
+#             client_i = camion_i.liste_clients[j]
+#
+#             # Parcourir tous les autres camions
+#             for k in range(len(solution.camions)):
+#                 camion_k = solution.camions[k]
+#
+#                 # Éviter de transférer le client_i vers son propre camion
+#                 if k != i:
+#                     # Parcourir tous les clients du camion k
+#                     for l in range(len(camion_k.liste_clients)):
+#                         client_k = camion_k.liste_clients[l]
+#
+#                         # Créer une copie de la solution actuelle
+#                         voisin = solution.copy()
+#
+#                         # Échanger les clients entre les camions
+#                         voisin.camions[i].liste_clients[j] = client_k
+#                         voisin.camions[k].liste_clients[l] = client_i
+#
+#                         # Vérifier si les capacités des camions sont respectées
+#                         if voisin.camions[i].capacite_suffisante(voisin.camions[i].liste_clients) and voisin.camions[k].capacite_suffisante(voisin.camions[k].liste_clients):
+#                             voisins.append(voisin)
+#
+#     return voisins
 
 def fusion(solution):
     voisins = []
@@ -212,42 +226,95 @@ def fusion(solution):
     return voisins
 
 
-def choisir_voisinage(solution):
-    # Choisir un voisinage aléatoire
-    methode_voisinages = ["relocate(solution)", "opt_2(solution)", "exchange_extra(solution)","fusion(solution)"]
-    voisins = eval(random.choice(methode_voisinages))
-    if not voisins:
-        voisins = choisir_voisinage(solution)
-    return voisins
+def choisir_voisin(solution):
+    camion1 = random.choice(solution.camions)
+    camion2 = random.choice(solution.camions)
+    while camion1 == camion2:
+        camion2 = random.choice(solution.camions)
+
+    operateurs = ["exchange_extra(camion1, camion2)", "exchange_intra(camion1)", "relocate_intra(camion1)", "relocate_extra(camion1, camion2)"]
+    operateur = random.choice(operateurs)
+    if operateur == "exchange_intra(camion1)" or operateur == "relocate_intra(camion1)":
+        camion2 = None
+
+    result = eval(operateur)
+
+    while not result:
+        operateur = random.choice(operateurs)
+        if operateur == "exchange_extra(camion1, camion2)" or operateur == "relocate_extra(camion1, camion2)":
+            camion2 = None
+        result = eval(operateur)
+
+    if isinstance(result, tuple):
+        r = []
+        r.append(result[0])
+        r.append(result[1])
+        result = r
+
+    if not isinstance(result, list):
+        result = [result]
+
+
+    copy_solution = copy.deepcopy(solution)
+    copy_solution.camions = result + [camion for camion in solution.camions if camion not in [camion1, camion2]]
+
+    for camion in copy_solution.camions:
+        if not camion.liste_clients:
+            copy_solution.camions.remove(camion)
+    return copy_solution
+
+# def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
+#     delete_all_images()
+#     meilleure_solution = solution_initiale
+#     temperature = temperature_initiale
+#     iterations_sans_amelioration = 0
+#     voisins_actuel = None
+#
+#
+#     for i in range(nombre_iterations):
+#         if voisins_actuel is None:
+#             voisins_actuel = choisir_voisin(meilleure_solution)
+#             voisin_choisi = random.choice(voisins_actuel)
+#         else:
+#             voisin_choisi = random.choice(voisins_actuel)
+#
+#         if voisin_choisi is not None:
+#             delta_distance = voisin_choisi.calculer_distance_total() - meilleure_solution.calculer_distance_total()
+#             if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
+#                 meilleure_solution = voisin_choisi
+#                 iterations_sans_amelioration = 0  # Réinitialiser le compteur
+#                 voisins_actuel = None
+#                 print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()}")
+#             else:
+#                 iterations_sans_amelioration += 1
+#
+#             if iterations_sans_amelioration >= seuil_sans_amelioration:
+#                 print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
+#                 break
+#
+#         temperature *= alpha
+#
+#     return meilleure_solution
 
 def recuit_simule(solution_initiale, temperature_initiale, alpha, nombre_iterations, seuil_sans_amelioration):
     delete_all_images()
     meilleure_solution = solution_initiale
     temperature = temperature_initiale
     iterations_sans_amelioration = 0
-    voisins_actuel = None
-    
 
     for i in range(nombre_iterations):
-        if voisins_actuel is None:
-            voisins_actuel = choisir_voisinage(meilleure_solution)
-            voisin_choisi = random.choice(voisins_actuel)
+        voisin = choisir_voisin(meilleure_solution)
+        delta_distance = voisin.calculer_distance_total() - meilleure_solution.calculer_distance_total()
+        if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
+            meilleure_solution = voisin
+            iterations_sans_amelioration = 0
+            print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()}")
         else:
-            voisin_choisi = random.choice(voisins_actuel)
+            iterations_sans_amelioration += 1
 
-        if voisin_choisi is not None:
-            delta_distance = voisin_choisi.calculer_distance_total() - meilleure_solution.calculer_distance_total()
-            if delta_distance < 0 or random.random() < math.exp(-delta_distance / temperature):
-                meilleure_solution = voisin_choisi
-                iterations_sans_amelioration = 0  # Réinitialiser le compteur
-                voisins_actuel = None
-                print(f"itération: {i} distance: {meilleure_solution.calculer_distance_total()}")
-            else:
-                iterations_sans_amelioration += 1
-
-            if iterations_sans_amelioration >= seuil_sans_amelioration:
-                print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
-                break
+        if iterations_sans_amelioration >= seuil_sans_amelioration:
+            print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
+            break
 
         temperature *= alpha
 
