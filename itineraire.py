@@ -139,6 +139,8 @@ def exchange_extra(camion1, camion2, client1, client2):
     if camion1.liste_clients and camion2.liste_clients:
         if camion1.capacity - client1.demand + client2.demand <= camion1.max_capacity and camion2.capacity - client2.demand + client1.demand <= camion2.max_capacity:
             # On échange les clients
+            if client1 not in camion1.liste_clients:
+                print("Client1 not in camion1")
             camion1.liste_clients.remove(client1)
             if client2 not in camion2.liste_clients:
                 print("Client2 not in camion1")
@@ -259,10 +261,80 @@ def recuit_simule(solution_initiale, temperature_initiale, alpha, seuil_sans_ame
 def generer_voisins(solution):
     voisins = []
 
-    #voisins.extend(relocate_intra_tabou(solution))
-    #voisins.extend(exchange_intra_tabou(solution))
-    #voisins.extend(exchange_extra_tabou(solution))
-    voisins.extend(relocate_extra_tabou(solution))
+    # Relocate_inter
+    for camion in solution.camions:
+        for client1 in camion.liste_clients:
+            for index in range(len(camion.liste_clients)):
+                solution_deepcopy = copy.deepcopy(solution)
+                result = relocate_intra(camion, client1, index)
+                for camion2 in result:
+                    index_camion = solution.camions.index(camion2)
+                    solution_deepcopy.camions[index_camion] = camion2
+
+                for camion2 in solution_deepcopy.camions:
+                    if not camion2.liste_clients:
+                        solution_deepcopy.camions.remove(camion2)
+
+                voisins.append(solution_deepcopy)
+
+
+    # Exchange_intra
+    for camion in solution.camions:
+        for client1 in camion.liste_clients:
+            for client2 in camion.liste_clients:
+                if client1 != client2:
+                    solution_deepcopy = copy.deepcopy(solution)
+                    result = exchange_intra(camion, client1, client2)
+                    for camion2 in result:
+                        index_camion = solution.camions.index(camion2)
+                        solution_deepcopy.camions[index_camion] = camion2
+
+                    for camion2 in solution_deepcopy.camions:
+                        if not camion2.liste_clients:
+                            solution_deepcopy.camions.remove(camion2)
+
+                    voisins.append(solution_deepcopy)
+
+    # Exchange_extra
+    for camion_i in solution.camions:
+        for camion_j in solution.camions:
+            if camion_i != camion_j:
+                for client1 in camion_i.liste_clients:
+                    for client2 in camion_j.liste_clients:
+                        if client1.idName != client2.idName:
+                            if client1 not in camion_i.liste_clients:
+                                print("Client1 not in camion1")
+                                # LE pROBLEME VIENT DE LINSTANCE DE SOLUTION METTRE UN POINT DARRET 304 POUR COMPRENDRE
+                            result = exchange_extra(camion_i, camion_j, client1, client2)
+                            solution_deepcopy = copy.deepcopy(solution)
+                            for camion2 in result:
+                                index_camion = solution.camions.index(camion2)
+                                solution_deepcopy.camions[index_camion] = camion2
+
+                            for camion2 in solution_deepcopy.camions:
+                                if not camion2.liste_clients:
+                                    solution_deepcopy.camions.remove(camion2)
+
+                            voisins.append(solution_deepcopy)
+
+
+    # Relocate_extra
+    for camion_i in solution.camions:
+        for camion_j in solution.camions:
+            if camion_i != camion_j:
+                for client1 in camion_i.liste_clients:
+                    for index in range(len(camion_j.liste_clients)):
+                        solution_deepcopy = copy.deepcopy(solution)
+                        result = relocate_extra(camion_i, camion_j, client1, index)
+                        for camion2 in result:
+                            index_camion = solution.camions.index(camion2)
+                            solution_deepcopy.camions[index_camion] = camion2
+
+                        for camion2 in solution_deepcopy.camions:
+                            if not camion2.liste_clients:
+                                solution_deepcopy.camions.remove(camion2)
+
+                        voisins.append(solution_deepcopy)
 
     return voisins
 
