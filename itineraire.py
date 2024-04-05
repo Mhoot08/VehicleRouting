@@ -108,13 +108,7 @@ def relocate(solution):
     return voisins
 
 # On change de place un client dans un camion
-def relocate_intra(camion):
-     # On prend un client aléatoire
-    client = random.choice(camion.liste_clients)
-
-    # Prendre un index aléatoire
-    index = random.randint(0, len(camion.liste_clients) - 1)
-
+def relocate_intra(camion, client, index):
     # On insère le client à l'index choisi
     camion.liste_clients.remove(client)
 
@@ -125,15 +119,9 @@ def relocate_intra(camion):
 
     return [camion]
 
-def exchange_intra(camion):
+def exchange_intra(camion, client1, client2):
     # On échange deux clients dans un même camion
     if len(camion.liste_clients) > 1:
-        # On prend deux clients aléatoirement mais différents
-        client1 = random.choice(camion.liste_clients)
-        client2 = random.choice(camion.liste_clients)
-        while client1 == client2:
-            client2 = random.choice(camion.liste_clients)
-
         # On échange les clients
         index1 = camion.liste_clients.index(client1)
         index2 = camion.liste_clients.index(client2)
@@ -152,6 +140,8 @@ def exchange_extra(camion1, camion2, client1, client2):
         if camion1.capacity - client1.demand + client2.demand <= camion1.max_capacity and camion2.capacity - client2.demand + client1.demand <= camion2.max_capacity:
             # On échange les clients
             camion1.liste_clients.remove(client1)
+            if client2 not in camion2.liste_clients:
+                print("Client2 not in camion1")
             camion2.liste_clients.remove(client2)
 
             camion1.liste_clients.append(client2)
@@ -178,22 +168,39 @@ def relocate_extra(camion1, camion2, client1, client2):
 
 def choisir_voisin(solution):
     result = None
-    operateurs = ["exchange_extra(camion1, camion2, client1, client2)", "exchange_intra(camion1, client1)", "relocate_intra(camion1, client1)", "relocate_extra(camion1, camion2, client1, client2)"]
-    #operateurs = ["relocate_extra(camion1, camion2)"]
+    operateurs = ["exchange_extra(camion1, camion2, client1, client2)", "exchange_intra(camion1, client1, client2_camion1)", "relocate_intra(camion1, client1, index1_relocate)", "relocate_extra(camion1, camion2, client1, index2_relocate)"]
+    #operateurs = ["exchange_extra(camion1, camion2, client1, client2)"]
     while not result:
-        solution_deepcopy = copy.deepcopy(solution)
-        camion1 = random.choice(solution_deepcopy.camions)
-        camion2 = random.choice(solution_deepcopy.camions)
-        client1 = random.choice(camion1.liste_clients)
-        client2 = random.choice(camion2.liste_clients)
-
         operateur = random.choice(operateurs)
-        while camion1 == camion2:
+        solution_deepcopy = copy.deepcopy(solution)
+
+        if operateur == "exchange_extra(camion1, camion2, client1, client2)":
+            camion1 = random.choice(solution_deepcopy.camions)
             camion2 = random.choice(solution_deepcopy.camions)
-        if operateur == "exchange_intra(camion1, client1)" or operateur == "relocate_intra(camion1, client1)":
-            camion2 = None
-            client2 = None
+            while camion1 == camion2:
+                camion2 = random.choice(solution_deepcopy.camions)
+            client1 = random.choice(camion1.liste_clients)
+            client2 = random.choice(camion2.liste_clients)
+            while client1 == client2:
+                client2 = random.choice(camion2.liste_clients)
+            if client2 not in camion2.liste_clients:
+                print("Client2 not in camion1")
+        if operateur == "exchange_intra(camion1, client1, client2_camion1)":
+            camion1 = random.choice(solution_deepcopy.camions)
+            client1 = random.choice(camion1.liste_clients)
+            client2_camion1 = random.choice(camion1.liste_clients)
+        if operateur == "relocate_intra(camion1, client1, index1_relocate)":
+            camion1 = random.choice(solution_deepcopy.camions)
+            client1 = random.choice(camion1.liste_clients)
+            index1_relocate = random.randint(0, len(camion1.liste_clients) - 1)
+        if operateur == "relocate_extra(camion1, camion2, client1, index2_relocate)":
+            camion1 = random.choice(solution_deepcopy.camions)
+            camion2 = random.choice(solution_deepcopy.camions)
+            client1 = random.choice(camion1.liste_clients)
+            index2_relocate = random.randint(0, len(camion2.liste_clients) - 1)
+
         result = eval(operateur)
+        camion1, camion2, client1, client2, index1_relocate, index2_relocate = None, None, None, None, None, None
 
     for camion in result:
         index_camion = solution_deepcopy.camions.index(camion)

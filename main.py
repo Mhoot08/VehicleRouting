@@ -84,7 +84,7 @@ print("Début de l'algorithme de recuit simulé")
 solution_initiale_temp = generer_solution_aleatoire(v, 10)
 afficher_solution(solution_initiale_temp)
 #meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
-meilleure_solution = recuit_simule(solution_initiale_temp, 13, 0.95, 10000)
+meilleure_solution = recuit_simule(solution_initiale_temp, 3, 0.95, 10000)
 afficher_solution(meilleure_solution)
 p = 0
 for i in range(len(meilleure_solution.camions)):
