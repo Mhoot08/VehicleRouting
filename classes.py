@@ -1,4 +1,5 @@
 import math
+import itertools
 from random import random
 
 
@@ -30,11 +31,13 @@ class Client:
     def __eq__(self, other):
         return self.idName == other.idName
 class Camion:
+    id_iter = itertools.count()
     def __init__(self, max_capacity):
         self.max_capacity = int(max_capacity)
         self.liste_clients = []
         self.capacity = 0
         self.couleur = self.generer_couleur_aleatoire()
+        self.id = next(self.id_iter)
 
     def generer_couleur_aleatoire(self):
         couleurs_disponibles = ['r', 'g', 'b', 'c', 'm', 'y', 'k']  # Couleurs disponibles

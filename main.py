@@ -80,10 +80,12 @@ print("Début de l'algorithme de recuit simulé")
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
+# Afficher demande total clients
+print(f"La demande total des clients est de : {v.getCapacityClient()}")
 # Recherche Tabou
 solution_initiale_temp = generer_solution_aleatoire(v, 10)
 afficher_solution(solution_initiale_temp)
-meilleure_solution = recherche_tabou(v, 10, 1000000, 100)
+meilleure_solution = recherche_tabou(v, 10, 10000, 100)
 #meilleure_solution = recuit_simule(solution_initiale_temp, 3, 0.95, 10000)
 afficher_solution(meilleure_solution)
 p = 0
