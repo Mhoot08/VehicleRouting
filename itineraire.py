@@ -139,16 +139,13 @@ def exchange_extra(camion1, camion2, client1, client2):
     # On échange un client entre deux camions
     if camion1.liste_clients and camion2.liste_clients:
         if camion1.capacity - client1.demand + client2.demand <= camion1.max_capacity and camion2.capacity - client2.demand + client1.demand <= camion2.max_capacity:
-            # On échange les clients
-            if client1 not in camion1.liste_clients:
-                print("Client1 not in camion1")
-            camion1.liste_clients.remove(client1)
-            if client2 not in camion2.liste_clients:
-                print("Client2 not in camion1")
-            camion2.liste_clients.remove(client2)
+            # Trouver l'index des clients dans les listes des camions
+            index_client1_camion1 = camion1.liste_clients.index(client1)
+            index_client2_camion2 = camion2.liste_clients.index(client2)
 
-            camion1.liste_clients.append(client2)
-            camion2.liste_clients.append(client1)
+            # Échanger les clients en utilisant leurs index
+            camion1.liste_clients[index_client1_camion1] = client2
+            camion2.liste_clients[index_client2_camion2] = client1
 
 
     # Recalculer les capacités
@@ -168,6 +165,43 @@ def relocate_extra(camion1, camion2, client1, client2):
     camion2.capacity = sum([client.demand for client in camion2.liste_clients])
 
     return [camion1, camion2]
+
+def cross_exchange(camion1, camion2, index1, index2, num_clients):
+    """
+    Échange un groupe de clients entre deux camions.
+
+    Args:
+    - camion1: Premier camion impliqué dans l'échange.
+    - camion2: Deuxième camion impliqué dans l'échange.
+    - index1: Index du premier client dans le premier camion.
+    - index2: Index du premier client dans le deuxième camion.
+    - num_clients: Nombre de clients à échanger.
+
+    Returns:
+    - camion1: Premier camion après l'échange.
+    - camion2: Deuxième camion après l'échange.
+    """
+    if num_clients > min(len(camion1.liste_clients) - index1, len(camion2.liste_clients) - index2):
+        return None, None  # Impossible d'échanger plus de clients que ce que les camions ont
+
+    # Extraire les groupes de clients à échanger
+    clients_to_exchange_camion1 = camion1.liste_clients[index1:index1+num_clients]
+    clients_to_exchange_camion2 = camion2.liste_clients[index2:index2+num_clients]
+
+    # Vérifier si l'échange est possible en termes de capacité des camions
+    demand_camion1 = sum(client.demand for client in clients_to_exchange_camion1)
+    demand_camion2 = sum(client.demand for client in clients_to_exchange_camion2)
+    if (camion1.capacity - demand_camion1 + demand_camion2 <= camion1.max_capacity) and \
+       (camion2.capacity - demand_camion2 + demand_camion1 <= camion2.max_capacity):
+        # Effectuer l'échange
+        camion1.liste_clients[index1:index1+num_clients] = clients_to_exchange_camion2
+        camion2.liste_clients[index2:index2+num_clients] = clients_to_exchange_camion1
+
+        # Recalculer les capacités
+        camion1.capacity = sum(client.demand for client in camion1.liste_clients)
+        camion2.capacity = sum(client.demand for client in camion2.liste_clients)
+
+        return camion1, camion2
 
 def choisir_voisin(solution):
     result = None
@@ -266,27 +300,34 @@ def generer_voisins(solution):
     for camion in solution.camions:
         for client1 in camion.liste_clients:
             for index in range(len(camion.liste_clients)):
-                client_at_index_initial = camion.liste_clients[index]
-                if client1 != client_at_index_initial:
-                    solution_deepcopy = copy.deepcopy(solution)
-                    index_camion = solution_deepcopy.camions.index(camion)
-                    deepcopy_camion = solution_deepcopy.camions[index_camion]
-                    deepcopy_client1 = deepcopy_camion.liste_clients[deepcopy_camion.liste_clients.index(client1)]
 
-                    client_at_index = deepcopy_camion.liste_clients[index]
-                    result = relocate_intra(deepcopy_camion, deepcopy_client1, index)
+                solution_deepcopy = copy.deepcopy(solution)
+                index_camion = solution_deepcopy.camions.index(camion)
+                deepcopy_camion = solution_deepcopy.camions[index_camion]
+                deepcopy_client1 = deepcopy_camion.liste_clients[deepcopy_camion.liste_clients.index(client1)]
 
-                    for camion2 in result:
-                        index_camion = solution_deepcopy.camions.index(camion2)
-                        solution_deepcopy.camions[index_camion] = camion2
+                client_at_index = deepcopy_camion.liste_clients[index]
+                if index == deepcopy_camion.liste_clients.index(client1):
+                    continue
+                result = relocate_intra(deepcopy_camion, deepcopy_client1, index)
 
-                    for camion2 in solution_deepcopy.camions:
-                        if not camion2.liste_clients:
-                            solution_deepcopy.camions.remove(camion2)
+                client1_previous = None if index == 0 else deepcopy_camion.liste_clients[index - 1].idName
+                client1_next = None if index == len(deepcopy_camion.liste_clients) - 1 else deepcopy_camion.liste_clients[index + 1].idName
 
-                    operation_inverse = [f"relocate intra, {camion.id}, {client_at_index.idName}, {deepcopy_client1.idName}"]
-                    operation_a_faire = [f"relocate intra, {camion.id}, {deepcopy_client1.idName}, {client_at_index.idName}", f"relocate intra, {camion.id}, {client_at_index.idName}, {deepcopy_client1.idName}"]
-                    #voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
+                client_at_index_previous = None if index == 0 else deepcopy_camion.liste_clients[index - 1].idName
+                client_at_index_next = None if index == len(deepcopy_camion.liste_clients) - 1 else deepcopy_camion.liste_clients[index + 1].idName
+
+                for camion2 in result:
+                    index_camion = solution_deepcopy.camions.index(camion2)
+                    solution_deepcopy.camions[index_camion] = camion2
+
+                for camion2 in solution_deepcopy.camions:
+                    if not camion2.liste_clients:
+                        solution_deepcopy.camions.remove(camion2)
+
+                operation_inverse = [f"relocate intra, {[client1_previous, deepcopy_camion.liste_clients[index].idName]}", f"relocate intra, {[deepcopy_camion.liste_clients[index].idName, client1_next]}"]
+                operation_a_faire = [f"relocate intra, {[client_at_index_previous, deepcopy_camion.liste_clients[index].idName]}", f"relocate intra, {[deepcopy_camion.liste_clients[index].idName, client_at_index_next]}"]
+                voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
 
 
     # Exchange_intra
@@ -311,7 +352,7 @@ def generer_voisins(solution):
 
                     operation_inverse = [f"exchange intra, {camion.id}, {deepcopy_client1.idName}, {deepcopy_client2.idName}", f"exchange intra, {camion.id}, {deepcopy_client2.idName}, {deepcopy_client1.idName}"]
                     operation_a_faire = [f"exchange intra, {camion.id}, {deepcopy_client1.idName}, {deepcopy_client2.idName}"]
-                    #voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
+                    voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
 
     # Exchange_extra
     for camion_i in solution.camions:
@@ -341,10 +382,10 @@ def generer_voisins(solution):
                                     solution_deepcopy.camions.remove(camion2)
 
 
-                            operation_inverse = [f"exchange extra, {camion_i.id}, {camion_j.id}, {deepcopy_client2.idName}, {deepcopy_client1.idName}", f"exchange extra, {camion_j.id}, {camion_i.id}, {deepcopy_client2.idName}, {deepcopy_client1.idName}"]
-                            operation_a_faire = [f"exchange extra, {camion_i.id}, {camion_j.id}, {deepcopy_client1.idName}, {deepcopy_client2.idName}"]
+                            operation_inverse = [f"exchange extra, {deepcopy_client2.idName}, {deepcopy_client1.idName}", f"exchange extra, {deepcopy_client1.idName}, {deepcopy_client2.idName}"]
+                            operation_a_faire = [f"exchange extra, {deepcopy_client1.idName}, {deepcopy_client2.idName}"]
 
-                            #voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
+                            voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
 
 
     # Relocate_extra
@@ -360,21 +401,66 @@ def generer_voisins(solution):
                         deepcopy_camion_j = solution_deepcopy.camions[index_camion_j_deepcopy]
                         deepcopy_client1 = deepcopy_camion_i.liste_clients[deepcopy_camion_i.liste_clients.index(client1)]
 
-                        client_at_index = deepcopy_camion_j.liste_clients[index]
+
+                        client_at_index_j = deepcopy_camion_j.liste_clients[index]
+                        index_client_i = deepcopy_camion_i.liste_clients.index(deepcopy_client1)
+                        camion_depart = deepcopy_camion_i.liste_clients
+                        if deepcopy_client1 not in deepcopy_camion_j.liste_clients:
+                            result = relocate_extra(deepcopy_camion_i, deepcopy_camion_j, deepcopy_client1, index)
+                            camion_depart_result = result[0].liste_clients
+                            camion_arrivee_result = result[1].liste_clients
 
 
-                        result = relocate_extra(deepcopy_camion_i, deepcopy_camion_j, deepcopy_client1, index)
-                        for camion2 in result:
-                            index_camion = solution_deepcopy.camions.index(camion2)
-                            solution_deepcopy.camions[index_camion] = camion2
 
-                        for camion2 in solution_deepcopy.camions:
-                            if not camion2.liste_clients:
-                                solution_deepcopy.camions.remove(camion2)
+                            depart_previous = None if index_client_i == 0 else camion_depart_result[index_client_i - 1].idName
+                            depart_next = None if index_client_i == len(camion_depart_result) else camion_depart_result[index_client_i].idName
 
-                        operation_inverse = [f"relocate extra, {camion_i.id}, {camion_j.id}, {client_at_index.idName}, {deepcopy_client1.idName}", f"relocate extra, {camion_i.id}, {camion_j.id}, {deepcopy_client1.idName}, {client_at_index.idName}"]
-                        operation_a_faire = [f"relocate extra, {camion_i.id}, {camion_j.id}, {deepcopy_client1.idName}, {client_at_index.idName}"]
-                        voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
+                            arrive_previous = None if index == 0 else camion_arrivee_result[index - 1].idName
+                            arrivee_next = None if index == len(camion_arrivee_result) - 1 else camion_arrivee_result[index + 1].idName
+
+
+                            for camion2 in result:
+                                index_camion = solution_deepcopy.camions.index(camion2)
+                                solution_deepcopy.camions[index_camion] = camion2
+
+                            for camion2 in solution_deepcopy.camions:
+                                if not camion2.liste_clients:
+                                    solution_deepcopy.camions.remove(camion2)
+
+
+
+                            operation_inverse = [f"relocate extra, {[depart_previous, camion_arrivee_result[index].idName]}", f"relocate extra, {[camion_arrivee_result[index].idName, depart_next]}", f"relocate extra, {[arrive_previous, camion_arrivee_result[index].idName]}", f"relocate extra, {[camion_arrivee_result[index].idName, arrivee_next]}"]
+                            operation_a_faire = [f"relocate extra, {[arrive_previous, camion_arrivee_result[index].idName]}", f"relocate extra, {[camion_arrivee_result[index].idName, arrivee_next]}"]
+                            voisins.append([solution_deepcopy, operation_inverse, operation_a_faire])
+
+    # Cross_exchange
+    for camion1 in solution.camions:
+        for camion2 in solution.camions:
+            if camion1 != camion2:
+                for index1 in range(len(camion1.liste_clients)):
+                    for index2 in range(len(camion2.liste_clients)):
+                        for num_clients in range(1, min(len(camion1.liste_clients) - index1 + 1,
+                                                        len(camion2.liste_clients) - index2 + 1)):
+                            solution_deepcopy = copy.deepcopy(solution)
+                            index_camion1_deepcopy = solution_deepcopy.camions.index(camion1)
+                            index_camion2_deepcopy = solution_deepcopy.camions.index(camion2)
+                            deepcopy_camion1 = solution_deepcopy.camions[index_camion1_deepcopy]
+                            deepcopy_camion2 = solution_deepcopy.camions[index_camion2_deepcopy]
+
+                            new_camion1, new_camion2 = cross_exchange(
+                                solution_deepcopy.camions[index_camion1_deepcopy],
+                                solution_deepcopy.camions[index_camion2_deepcopy],
+                                index1, index2, num_clients)
+                            if new_camion1 and new_camion2:
+                                solution_deepcopy.camions[index_camion1_deepcopy] = new_camion1
+                                solution_deepcopy.camions[index_camion2_deepcopy] = new_camion2
+
+
+                                operation_a_faire = [f"cross exchange, {index1}, {index2}, {num_clients}"]
+                                operation_inverse = [f"cross exchange, {index2}, {index1}, {num_clients}"]
+
+
+                                voisins.append([solution_deepcopy])
 
     print(f"Nombre de voisins générés: {len(voisins)}")
     print(f"Nombre de camions dans la solution: {len(solution_deepcopy.camions)}")
@@ -427,7 +513,16 @@ def recherche_tabou(solution_initiale, taille_liste_tabou, max_iterations, seuil
                     liste_tabou.pop(0)
             fmin = meilleure_distance
 
-            print(f"Iteration: {i} Distance: {meilleure_distance} taille_tabou: {len(liste_tabou)}, Inverse : {meilleure_operateurs[0]}, opération faite : {meilleure_operateurs[1]}, liste_tabou{liste_tabou}")
+            print(f"Iteration: {i}")
+            print(f"Distance: {meilleure_distance}")
+            print(f"taille_tabou: {len(liste_tabou)}")
+            print(f"Inverse : {meilleure_operateurs[0]}")
+            print(f"opération faite : {meilleure_operateurs[1]}")
+            print(f"liste_tabou{liste_tabou}")
+            for camion in meilleure_solution.camions:
+                clients_str = ", ".join([f"{client.idName}" for client in camion.liste_clients])
+                print(f"Camion {camion.id} : [{clients_str}]")
+            print("____________________________________________________________________________________________________________________")
 
             if iterations_sans_amelioration >= seuil_sans_amelioration:
                 print(f"Aucune amélioration observée depuis {seuil_sans_amelioration} itérations. Arrêt de l'itération.")
