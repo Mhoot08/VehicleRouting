@@ -1,8 +1,13 @@
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import FancyArrowPatch
 import random
 import os
 from PIL import Image
+import tkinter as tk
+from tkinter import ttk
+import config
+
 
 def afficher_solution(vehicle_routing):
     plt.figure(figsize=(14, 8))
@@ -46,7 +51,7 @@ def afficher_solution(vehicle_routing):
 
 def sauvegarder_solution(vehicle_routing, increment):
     chemin_image = f"images/solution_{increment}.png"
-    plt.figure(figsize=(14, 8))
+
 
     # Dictionnaire pour stocker les couleurs des camions
     couleurs_camions = {}
@@ -76,8 +81,8 @@ def sauvegarder_solution(vehicle_routing, increment):
     plt.title('Visualisation du problème de VRP')
     plt.legend()
     plt.grid(True)
-    plt.savefig(chemin_image)  # Sauvegarder l'image
     plt.close()  # Fermer la figure pour libérer la mémoire
+
 
 def creer_gif():
     chemin_gif = "solution.gif"

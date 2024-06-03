@@ -38,6 +38,8 @@ class Camion:
         self.capacity = 0
         self.couleur = self.generer_couleur_aleatoire()
         self.id = next(self.id_iter)
+        self.time = 0
+
 
     def generer_couleur_aleatoire(self):
         couleurs_disponibles = ['r', 'g', 'b', 'c', 'm', 'y', 'k']  # Couleurs disponibles
@@ -108,6 +110,12 @@ class Camion:
 
     def __eq__(self, other):
         return self.liste_clients == other.liste_clients
+
+    def remove_client(self, client):
+        self.liste_clients.remove(client)
+        self.capacity -= client.demand
+
+
 
 
 

@@ -2,10 +2,9 @@ from VehicleRouting import VehicleRouting
 from createMap import afficher_solution, creer_gif
 from itineraire import *
 
-v = VehicleRouting()
-v.read_file('data/data101.vrp')
 
-solution = generer_solution_aleatoire(v, 10)
+v = VehicleRouting()
+v.read_file('data/data102.vrp')
 
 # # On fait ça seulement pour un camion qui a plus de 3 clients
 # for i in range(len(v.camions)):
@@ -61,7 +60,6 @@ solution = generer_solution_aleatoire(v, 10)
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
-print("Début de l'algorithme de recuit simulé")
 # liste_camion_opti = []
 
 # # Utilisation de l'algorithme de recuit simulé
@@ -75,29 +73,13 @@ print("Début de l'algorithme de recuit simulé")
 # print(v)
 # afficher_solution(v)
 
-
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
-# Afficher demande total clients
-print(f"La demande total des clients est de : {v.getCapacityClient()}")
-# Recherche Tabou
-solution_initiale_temp = generer_solution_aleatoire(v, 10)
-afficher_solution(solution_initiale_temp)
-meilleure_solution = recherche_tabou(v, 10, 150, 100)
-#meilleure_solution = recuit_simule(solution_initiale_temp, 3, 0.95, 10000)
-afficher_solution(meilleure_solution)
-p = 0
-for i in range(len(meilleure_solution.camions)):
-    p += meilleure_solution.camions[i].capacity
-    print(f"camion {i} : {meilleure_solution.camions[i].capacity}")
 
-print(f"Capacité totale des camions : {p}")
+start()
 
-print(f"Capacité totale des clients : {meilleure_solution.getCapacityClient()}")
-
-print("Création du gif")
 print("Fin de l'algorithme")
 
 #s = start_metaheuristique(solution_initiale_temp)
