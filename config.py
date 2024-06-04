@@ -18,6 +18,9 @@ DESCENTE_NOMBRE_ITERATIONS = 100
 
 NOMBRE_CAMIONS = 10
 
+NOMBRE_LANCERS = 10
+NOMBRE_CLIENTS = 30
+
 OPERATEURS = ["relocate_intra", "exchange_intra", "exchange_extra", "relocate_extra", "cross_exchange", "rotate_camion"]
 
 

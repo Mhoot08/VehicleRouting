@@ -100,10 +100,3 @@ def creer_gif():
 
     # Sauvegarder le gif
     images[0].save(chemin_gif, save_all=True, append_images=images[1:], duration=100, loop=1)
-
-def delete_all_images():
-    chemin_images = "./images/"
-    # Parcourir toutes les images dans le dossier spécifié
-    for filename in os.listdir(chemin_images):
-        if filename.endswith('.png'):
-            os.remove(os.path.join(chemin_images, filename))

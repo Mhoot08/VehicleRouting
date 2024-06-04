@@ -16,6 +16,7 @@ class VehicleRouting:
         self.camions = []
         self.depots = []
         self.clients = []
+        self.read_file('data/data101.vrp')
 
     def read_file(self, file_path):
         with open(file_path, 'r') as file:

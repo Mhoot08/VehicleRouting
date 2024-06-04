@@ -14,7 +14,7 @@ from matplotlib.patches import FancyArrowPatch
 import config
 from VehicleRouting import VehicleRouting
 from classes import Camion
-from createMap import sauvegarder_solution, delete_all_images, afficher_solution
+from createMap import sauvegarder_solution, afficher_solution
 
 
 def open_setup_window():
@@ -30,7 +30,9 @@ def open_setup_window():
             int(tabou_nombre_var.get()),
             int(descente_nombre_var.get()),
             int(nombre_camion_var.get()),
-            [op for op, var in operateur_vars.items() if var.get()]
+            [op for op, var in operateur_vars.items() if var.get()],
+            int(nombre_lancer_var.get()),
+            int(nombre_clients_var.get())
         )
         root.destroy()
 
@@ -73,24 +75,32 @@ def open_setup_window():
     descente_nombre_var = tk.StringVar(value=str(config.DESCENTE_NOMBRE_ITERATIONS))
     ttk.Entry(root, textvariable=descente_nombre_var).grid(column=1, row=8)
 
-    ttk.Label(root, text="NB Camion:").grid(column=0, row=8, padx=10, pady=5)
+    ttk.Label(root, text="NB Camion:").grid(column=0, row=9, padx=10, pady=5)
     nombre_camion_var = tk.StringVar(value=str(config.NOMBRE_CAMIONS))
-    ttk.Entry(root, textvariable=nombre_camion_var).grid(column=1, row=8)
+    ttk.Entry(root, textvariable=nombre_camion_var).grid(column=1, row=9)
 
-    ttk.Label(root, text="Operateurs:").grid(column=0, row=9, padx=10, pady=5)
+    ttk.Label(root, text="NB Lancer:").grid(column=0, row=10, padx=10, pady=5)
+    nombre_lancer_var = tk.StringVar(value=str(config.NOMBRE_LANCERS))
+    ttk.Entry(root, textvariable=nombre_lancer_var).grid(column=1, row=10)
+
+    ttk.Label(root, text="NB Clients:").grid(column=0, row=11, padx=10, pady=5)
+    nombre_clients_var = tk.StringVar(value=str(config.NOMBRE_CLIENTS))
+    ttk.Entry(root, textvariable=nombre_clients_var).grid(column=1, row=11)
+
+    ttk.Label(root, text="Operateurs:").grid(column=0, row=12, padx=10, pady=5)
     operateur_vars = {}
     for i, operateur in enumerate(config.OPERATEURS):
         var = tk.BooleanVar(value=True)
         operateur_vars[operateur] = var
-        ttk.Checkbutton(root, text=operateur, variable=var).grid(column=1, row=9 + i, sticky=tk.W)
+        ttk.Checkbutton(root, text=operateur, variable=var).grid(column=1, row=13 + i, sticky=tk.W)
 
     submit_button = ttk.Button(root, text="Submit", command=submit)
-    submit_button.grid(column=0, row=9 + len(config.OPERATEURS), columnspan=2, pady=10)
+    submit_button.grid(column=0, row=13 + len(config.OPERATEURS), columnspan=2, pady=10)
 
     root.mainloop()
 
 
-def setup(timewindow, recuit, tabou, descente, recuit_alpha, recuit_temperature_initiale, tabou_taille, tabou_nombre, descente_nombre, nombre_camion ,operateurs):
+def setup(timewindow, recuit, tabou, descente, recuit_alpha, recuit_temperature_initiale, tabou_taille, tabou_nombre, descente_nombre, nombre_camion ,operateurs, nombre_lancer, nombre_clients):
     config.TIMEWINDOW = timewindow
     config.RECUIT = recuit
     config.TABOU = tabou
@@ -102,6 +112,8 @@ def setup(timewindow, recuit, tabou, descente, recuit_alpha, recuit_temperature_
     config.DESCENTE_NOMBRE_ITERATIONS = descente_nombre
     config.OPERATEURS = operateurs
     config.NOMBRE_CAMIONS = nombre_camion
+    config.NOMBRE_LANCERS = nombre_lancer
+    config.NOMBRE_CLIENTS = nombre_clients
 
 def calculer_temps_trajet(client1, client2):
     temps_x = abs(client1.x - client2.x)
@@ -466,10 +478,11 @@ def ecrire_fichier_resultats(liste_resultats):
 
 
 def recuit_simule():
+    global_solution = None
+    global_solution_distance = float('-inf')
     print("Début de l'algorithme de recuit simulé")
     v = VehicleRouting()
     liste_resultats = []
-    delete_all_images()
     meilleure_solution = generer_solution_aleatoire(v, config.NOMBRE_CAMIONS)
     afficher_solution(meilleure_solution)
     temperature = config.RECUIT_TEMPERATURE_INITIALE
@@ -481,7 +494,7 @@ def recuit_simule():
 
     for k in range(n1):
         iterations_sans_amelioration = 0
-        for i in range(50000):
+        for i in range(1000):
             solution_courante, operateur = choisir_voisin(meilleure_solution)
             delta = solution_courante.calculer_distance_total() - meilleure_solution.calculer_distance_total()
             if delta < 0:
@@ -491,6 +504,9 @@ def recuit_simule():
                     meilleure_solution = copy.deepcopy(solution_courante)
                     print(f"Iteration: {k}.{iterations} Distance: {meilleure_solution.calculer_distance_total()} Température: {temperature} Opérateur: {operateur}")
                     liste_resultats.append(fmin)
+                    if meilleure_solution.calculer_distance_total() < global_solution_distance:
+                        global_solution_distance = meilleure_solution.calculer_distance_total()
+                        global_solution = copy.deepcopy(meilleure_solution)
 
             else:
                 iterations_sans_amelioration += 1
@@ -507,7 +523,7 @@ def recuit_simule():
     #ecrire_fichier_resultats(liste_resultats)
     print("Réalisation de la courbe")
     show_courbe(liste_resultats)
-    return meilleure_solution
+    return global_solution
 
 
 
@@ -653,8 +669,6 @@ def generer_voisins(solution):
                                 for camion2 in solution_deepcopy.camions:
                                     if not camion2.liste_clients:
                                         solution_deepcopy.camions.remove(camion2)
-
-
 
                                 operation_inverse = [f"relocate extra, {[depart_previous, camion_arrivee_result[index].idName]}", f"relocate extra, {[camion_arrivee_result[index].idName, depart_next]}", f"relocate extra, {[arrive_previous, camion_arrivee_result[index].idName]}", f"relocate extra, {[camion_arrivee_result[index].idName, arrivee_next]}"]
                                 operation_a_faire = [f"relocate extra, {[arrive_previous, camion_arrivee_result[index].idName]}", f"relocate extra, {[camion_arrivee_result[index].idName, arrivee_next]}"]
@@ -821,9 +835,13 @@ def recherche_tabou():
 
 def start():
     open_setup_window()
-    if config.RECUIT:
-        best = recuit_simule()
-    elif config.TABOU:
-        best = recherche_tabou()
-    afficher_solution(best)
-    print(f"Fitness : {best.calculer_distance_total()}")
+    list_result = []
+    for i in range(config.NOMBRE_LANCERS):
+        if config.RECUIT:
+            best = recuit_simule()
+        elif config.TABOU:
+            best = recherche_tabou()
+        #afficher_solution(best)
+        print(f"Fitness : {best.calculer_distance_total()}")
+        list_result.append(best.calculer_distance_total())
+    ecrire_fichier_resultats(list_result)
