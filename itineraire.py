@@ -22,15 +22,12 @@ from createMap import sauvegarder_solution, afficher_solution
 def open_setup_window():
     def submit():
         setup(
-            timewindow_var.get(),
             recuit_var.get(),
             tabou_var.get(),
-            descente_var.get(),
             float(recuit_alpha_var.get()),
             int(recuit_temp_initiale_var.get()),
             int(tabou_taille_var.get()),
             int(tabou_nombre_var.get()),
-            int(descente_nombre_var.get()),
             int(nombre_camion_var.get()),
             [op for op, var in operateur_vars.items() if var.get()],
             int(nombre_lancer_var.get()),
@@ -90,16 +87,13 @@ def open_setup_window():
     root.mainloop()
 
 
-def setup(timewindow, recuit, tabou, descente, recuit_alpha, recuit_temperature_initiale, tabou_taille, tabou_nombre, descente_nombre, nombre_camion ,operateurs, nombre_lancer, nombre_clients):
-    config.TIMEWINDOW = timewindow
+def setup(recuit, tabou, recuit_alpha, recuit_temperature_initiale, tabou_taille, tabou_nombre, nombre_camion ,operateurs, nombre_lancer, nombre_clients):
     config.RECUIT = recuit
     config.TABOU = tabou
-    config.DESCENTE = descente
     config.RECUIT_ALPHA = recuit_alpha
     config.RECUIT_TEMPERATURE_INITIALE = recuit_temperature_initiale
     config.TABOU_TAILLE_LISTE_TABOU = tabou_taille
     config.TABOU_NOMBRE_ITERATIONS = tabou_nombre
-    config.DESCENTE_NOMBRE_ITERATIONS = descente_nombre
     config.OPERATEURS = operateurs
     config.NOMBRE_CAMIONS = nombre_camion
     config.NOMBRE_LANCERS = nombre_lancer
