@@ -1,3 +1,4 @@
+import config
 from classes import Depot
 from classes import Client
 from classes import Camion
@@ -44,7 +45,7 @@ class VehicleRouting:
                         if line_values:
                             self.clients.append(Client(line_values[0], line_values[1], line_values[2], line_values[3], line_values[4], line_values[5], line_values[6]))
         # garder que les 30 premiers clients
-        self.clients = self.clients[:30]
+        self.clients = self.clients[:config.NOMBRE_CLIENTS]
 
         # Afficher la capacité total des clients
         print(self.getCapacityClient())

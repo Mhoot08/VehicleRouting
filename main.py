@@ -2,10 +2,6 @@ from VehicleRouting import VehicleRouting
 from createMap import afficher_solution, creer_gif
 from itineraire import *
 
-
-v = VehicleRouting()
-v.read_file('data/data102.vrp')
-
 # # On fait ça seulement pour un camion qui a plus de 3 clients
 # for i in range(len(v.camions)):
 #     if len(v.camions[i].liste_clients) > 2:

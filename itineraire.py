@@ -1,8 +1,10 @@
 import copy
+import csv
 import random
 import math
 import itertools
-
+import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import tkinter as tk
@@ -39,10 +41,6 @@ def open_setup_window():
     root = tk.Tk()
     root.title("Setup Parameters")
 
-    ttk.Label(root, text="Time Window:").grid(column=0, row=0, padx=10, pady=5)
-    timewindow_var = tk.BooleanVar(value=config.TIMEWINDOW)
-    ttk.Checkbutton(root, variable=timewindow_var).grid(column=1, row=0)
-
     ttk.Label(root, text="Recuit:").grid(column=0, row=1, padx=10, pady=5)
     recuit_var = tk.BooleanVar(value=config.RECUIT)
     ttk.Checkbutton(root, variable=recuit_var).grid(column=1, row=1)
@@ -50,10 +48,6 @@ def open_setup_window():
     ttk.Label(root, text="Tabou:").grid(column=0, row=2, padx=10, pady=5)
     tabou_var = tk.BooleanVar(value=config.TABOU)
     ttk.Checkbutton(root, variable=tabou_var).grid(column=1, row=2)
-
-    ttk.Label(root, text="Descente:").grid(column=0, row=3, padx=10, pady=5)
-    descente_var = tk.BooleanVar(value=config.DESCENTE)
-    ttk.Checkbutton(root, variable=descente_var).grid(column=1, row=3)
 
     ttk.Label(root, text="Recuit Alpha:").grid(column=0, row=4, padx=10, pady=5)
     recuit_alpha_var = tk.StringVar(value=str(config.RECUIT_ALPHA))
@@ -70,10 +64,6 @@ def open_setup_window():
     ttk.Label(root, text="Tabou Nombre Iterations:").grid(column=0, row=7, padx=10, pady=5)
     tabou_nombre_var = tk.StringVar(value=str(config.TABOU_NOMBRE_ITERATIONS))
     ttk.Entry(root, textvariable=tabou_nombre_var).grid(column=1, row=7)
-
-    ttk.Label(root, text="Descente Nombre Iterations:").grid(column=0, row=8, padx=10, pady=5)
-    descente_nombre_var = tk.StringVar(value=str(config.DESCENTE_NOMBRE_ITERATIONS))
-    ttk.Entry(root, textvariable=descente_nombre_var).grid(column=1, row=8)
 
     ttk.Label(root, text="NB Camion:").grid(column=0, row=9, padx=10, pady=5)
     nombre_camion_var = tk.StringVar(value=str(config.NOMBRE_CAMIONS))
@@ -467,22 +457,76 @@ def choisir_voisin(solution):
     return solution_deepcopy, operateur
 
 
-def ecrire_fichier_resultats(liste_resultats):
-    nom_fichier = "resultats.txt"
+def ecrire_fichier_resultats_recuit(liste_resultats):
+    # Générer le nom de fichier avec la date et l'heure
+    nom_fichier = datetime.now().strftime("resultats_%Y%m%d_%H%M%S.csv")
     print(f"Ecriture des résultats dans le fichier {nom_fichier}")
-    with open(nom_fichier, 'w+') as fichier:
-        for resultat in liste_resultats:
-            fichier.write(f"{resultat}\n")
+
+    with open(nom_fichier, 'w+', newline='') as fichier:
+        writer = csv.writer(fichier)
+
+        # Écriture des en-têtes de colonnes
+        writer.writerow(["Execution", "Iteration", "Distance", "Operateur", "Acceptation Mouvement", "Temperature", "Acceptation Temperature", "Temps Total"])
+
+        for exec_index, resultats in enumerate(liste_resultats):
+            # Fusionner les résultats pour chaque exécution
+            for i in range(len(resultats["fitness"]["iteration"])):
+                writer.writerow([
+                    exec_index + 1,  # Numéro de l'exécution
+                    resultats["fitness"]["iteration"][i],
+                    resultats["fitness"]["distance"][i],
+                    resultats["operateur"]["operateur"][i] if i < len(resultats["operateur"]["operateur"]) else "",
+                    resultats["acceptation_mouvements"]["acceptation"][i] if i < len(resultats["acceptation_mouvements"]["acceptation"]) else "",
+                    resultats["temperature"]["temperature"][i] if i < len(resultats["temperature"]["temperature"]) else "",
+                    resultats["acceptation_temperature"]["acceptation"][i] if i < len(resultats["acceptation_temperature"]["acceptation"]) else "",
+                    resultats["temps"]["temps"][i] if i < len(resultats["temps"]["temps"]) else "",
+                ])
+
+    print("Ecriture terminée")
+    return
+
+def ecrire_fichier_resultats_tabou(liste_resultats):
+    # Générer le nom de fichier avec la date et l'heure
+    nom_fichier = datetime.now().strftime("resultats_tabou_%Y%m%d_%H%M%S.csv")
+    print(f"Ecriture des résultats dans le fichier {nom_fichier}")
+
+    with open(nom_fichier, 'w+', newline='') as fichier:
+        writer = csv.writer(fichier)
+
+        # Écriture des en-têtes de colonnes
+        writer.writerow(["Execution", "Iteration", "Distance", "Operateur", "Temps Total","Taille Liste Tabou"])
+
+        for exec_index, resultats in enumerate(liste_resultats):
+            # Fusionner les résultats pour chaque exécution
+            for i in range(len(resultats["fitness"]["iteration"])):
+                writer.writerow([
+                    exec_index + 1,  # Numéro de l'exécution
+                    resultats["fitness"]["iteration"][i],
+                    resultats["fitness"]["distance"][i],
+                    resultats["operateur"]["operateur"][i] if i < len(resultats["operateur"]["operateur"]) else "",
+                    resultats["temps"]["temps"][i] if i < len(resultats["temps"]["temps"]) else "",
+                    resultats["taille_liste_tabou"]["taille"][i] if i < len(resultats["taille_liste_tabou"]["taille"]) else "",
+                ])
+
     print("Ecriture terminée")
     return
 
 
 def recuit_simule():
     global_solution = None
-    global_solution_distance = float('-inf')
+    global_solution_distance = float('inf')
     print("Début de l'algorithme de recuit simulé")
     v = VehicleRouting()
-    liste_resultats = []
+    liste_resultats = {
+        "fitness": {"iteration": [], "distance": []},
+        "operateur": {"iteration": [], "operateur": []},
+        "acceptation_mouvements": {"iteration": [], "acceptation": []},
+        "temperature": {"iteration": [], "temperature": []},
+        "acceptation_temperature": {"iteration": [], "acceptation": []},
+        "distance_totale": 0,
+        "temps": {"iteration": [], "temps": []}
+    }
+
     meilleure_solution = generer_solution_aleatoire(v, config.NOMBRE_CAMIONS)
     afficher_solution(meilleure_solution)
     temperature = config.RECUIT_TEMPERATURE_INITIALE
@@ -492,38 +536,61 @@ def recuit_simule():
     print(f"n1: {n1}")
     fmin = meilleure_solution.calculer_distance_total()
 
+    start_time = time.time()
+    print(f"n1 :{n1}")
     for k in range(n1):
         iterations_sans_amelioration = 0
-        for i in range(1000):
+        for i in range(5000):
+            random_temp = None
             solution_courante, operateur = choisir_voisin(meilleure_solution)
             delta = solution_courante.calculer_distance_total() - meilleure_solution.calculer_distance_total()
+
+            acceptation = False
+
             if delta < 0:
                 meilleure_solution = copy.deepcopy(solution_courante)
+                acceptation = True
                 if meilleure_solution.calculer_distance_total() < fmin:
                     fmin = meilleure_solution.calculer_distance_total()
                     meilleure_solution = copy.deepcopy(solution_courante)
                     print(f"Iteration: {k}.{iterations} Distance: {meilleure_solution.calculer_distance_total()} Température: {temperature} Opérateur: {operateur}")
-                    liste_resultats.append(fmin)
+
                     if meilleure_solution.calculer_distance_total() < global_solution_distance:
                         global_solution_distance = meilleure_solution.calculer_distance_total()
                         global_solution = copy.deepcopy(meilleure_solution)
 
+                        # Enregistrer les statistiques
+                        liste_resultats["fitness"]["iteration"].append(iterations)
+                        liste_resultats["fitness"]["distance"].append(meilleure_solution.calculer_distance_total())
+                        liste_resultats["operateur"]["iteration"].append(iterations)
+                        liste_resultats["operateur"]["operateur"].append(operateur)
+                        liste_resultats["acceptation_mouvements"]["iteration"].append(iterations)
+                        liste_resultats["acceptation_mouvements"]["acceptation"].append(acceptation)
+                        liste_resultats["temperature"]["iteration"].append(iterations)
+                        liste_resultats["temperature"]["temperature"].append(temperature)
+                        liste_resultats["temps"]["iteration"].append(iterations)
+                        liste_resultats["temps"]["temps"].append(time.time() - start_time)
+
             else:
                 iterations_sans_amelioration += 1
-                if random.random() < math.exp(-delta / temperature):
+                random_temp = random.random() < math.exp(-delta / temperature)
+                if random_temp:
                     meilleure_solution = copy.deepcopy(solution_courante)
+                    acceptation = True
+                liste_resultats["acceptation_temperature"]["iteration"].append(iterations)
+                liste_resultats["acceptation_temperature"]["acceptation"].append(random_temp)
+
+
 
             iterations += 1
 
         temperature *= config.RECUIT_ALPHA
-
         sauvegarder_solution(meilleure_solution, k)
 
-    print("salut")
-    #ecrire_fichier_resultats(liste_resultats)
-    print("Réalisation de la courbe")
-    show_courbe(liste_resultats)
-    return global_solution
+    end_time = time.time()
+    liste_resultats["distance_totale"] = meilleure_solution.calculer_distance_total()
+
+    return global_solution, liste_resultats
 
 
 
@@ -776,7 +843,15 @@ def recherche_tabou():
 
     liste_tabou = []
     iterations_sans_amelioration = 0
-    liste_resultats = []
+    liste_resultats = {
+        "fitness": {"iteration": [], "distance": []},
+        "operateur": {"iteration": [], "operateur": []},
+        "distance_totale": [],
+        "temps": {"iteration": [], "temps": []},
+        "taille_liste_tabou": {"iteration": [], "taille": []}
+    }
+
+    start_time = time.time()
 
     for i in range(config.TABOU_NOMBRE_ITERATIONS):
         if i > 30:
@@ -786,8 +861,6 @@ def recherche_tabou():
         meilleure_distance = float('inf')
         meilleure_operateurs = None
 
-        # if i > 25:
-        #     print("f")
         continue_outer_loop = False
         for j in range(len(voisins)):
             voisin = voisins[j][0]
@@ -795,7 +868,6 @@ def recherche_tabou():
             liste_tabou_temp = list(itertools.chain(*liste_tabou))
             for operateur_a_faire in operateurs_a_faire:
                 if operateur_a_faire in liste_tabou_temp:
-                    # Saute l'itération de la boucle externe
                     continue_outer_loop = True
                     break
             if continue_outer_loop:
@@ -810,7 +882,6 @@ def recherche_tabou():
                 meilleure_operateurs = [voisins[j][1], voisins[j][2]]
 
         if meilleure_voisin:
-
             meilleure_solution = copy.deepcopy(meilleure_voisin)
             if round(fmin, 10) <= round(meilleure_distance, 10):
                 liste_tabou.append(operateur_inverse)
@@ -828,20 +899,57 @@ def recherche_tabou():
                 clients_str = ", ".join([f"{client.idName}" for client in camion.liste_clients])
                 print(f"Camion {camion.id} : [{clients_str}] Capacité du camion : {camion.capacity}")
             print("____________________________________________________________________________________________________________________")
-            liste_resultats.append(meilleure_distance)
 
-    show_courbe(liste_resultats[:30])
-    return meilleure_solution
+            # Enregistrement des statistiques
+            liste_resultats["fitness"]["iteration"].append(i)
+            liste_resultats["fitness"]["distance"].append(meilleure_distance)
+            # Garder que l'opérateur avant la parenthèse
+            if "cross exchange" in meilleure_operateurs[1][0]:
+                operateur_str = "cross exchange"
+            elif "exchange extra" in meilleure_operateurs[1][0]:
+                operateur_str = "exchange extra"
+            elif "exchange intra" in meilleure_operateurs[1][0]:
+                operateur_str = "exchange intra"
+            elif "relocate extra" in meilleure_operateurs[1][0]:
+                operateur_str = "relocate extra"
+            elif "relocate intra" in meilleure_operateurs[1][0]:
+                operateur_str = "relocate intra"
+            elif "rotate camion" in meilleure_operateurs[1][0]:
+                operateur_str = "rotate camion"
+            liste_resultats["operateur"]["iteration"].append(i)
+            liste_resultats["operateur"]["operateur"].append(operateur_str)
+            liste_resultats["distance_totale"].append(meilleure_distance)
+            elapsed_time = time.time() - start_time
+            liste_resultats["temps"]["iteration"].append(i)
+            liste_resultats["temps"]["temps"].append(elapsed_time)
+            liste_resultats["taille_liste_tabou"]["iteration"].append(i)
+            liste_resultats["taille_liste_tabou"]["taille"].append(len(liste_tabou))
+
+    show_courbe(liste_resultats["fitness"]["distance"])
+    return meilleure_solution, liste_resultats
+
+# Exemple de fonction show_courbe (à personnaliser selon vos besoins)
+def show_courbe(liste_distances):
+    import matplotlib.pyplot as plt
+    plt.plot(liste_distances)
+    plt.xlabel('Iteration')
+    plt.ylabel('Distance')
+    plt.title('Evolution de la distance au cours des itérations')
+    plt.show()
 
 def start():
     open_setup_window()
     list_result = []
     for i in range(config.NOMBRE_LANCERS):
         if config.RECUIT:
-            best = recuit_simule()
+            best, list_resultat = recuit_simule()
+            list_result.append(list_resultat)
         elif config.TABOU:
-            best = recherche_tabou()
-        #afficher_solution(best)
+            best, liste_resultat = recherche_tabou()
+            list_result.append(liste_resultat)
+        afficher_solution(best)
         print(f"Fitness : {best.calculer_distance_total()}")
-        list_result.append(best.calculer_distance_total())
-    ecrire_fichier_resultats(list_result)
+    if config.RECUIT:
+        ecrire_fichier_resultats_recuit(list_result)
+    elif config.TABOU:
+        ecrire_fichier_resultats_tabou(list_result)
